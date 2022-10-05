@@ -1,0 +1,7 @@
+*.out
+*.exe
+*.o
+*.txt
+compileLog
+.log/
+a
