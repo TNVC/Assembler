@@ -17,6 +17,14 @@ enum FiofunctionsError {
 /// @return Size of buffer in heap or error`s code
 size_t readFile(char **buffer, const char *filename);
 
+/// Read bin file to buffer
+/// @param [out] buffer Buffer for write
+/// @param [in] size elementSize Size of one element
+/// @param [in] size Count of element in file
+/// @param [in] filePtr File for read
+/// @return Count of read elements
+int readBin(void *buffer, size_t elementSize, size_t size, FILE *filePtr);
+
 void writeBinFile(const void *buffer, size_t bufferSize, FILE *outputFile);
 
 void writeTxtFile(const char *buffer, FILE *outputFile);

@@ -86,9 +86,6 @@ unsigned stack_valid(const Stack *stk)
   if (stk->capacity < stk->lastElementIndex)
     error |= CAPACITY_LESS_THAN_SIZE;
 
-  if (!isPointerCorrect((void *)stk->copyFunction))
-    error |= NOT_COPYFUNCTION;
-
   if (stk->leftCanary != LEFT_CANARY)
     error |= LEFT_CANARY_DIED;
 
@@ -133,11 +130,11 @@ unsigned stack_valid(const Stack *stk)
 #endif
 }
 
-void do_stack_init(Stack *stk, size_t capacity, void (*copyFunction)(Element *, const Element *),
+void do_stack_init(Stack *stk, size_t capacity,
                   const char *name, const char *fileName, const char *functionName, int line,
                   unsigned *error)
 {
-  if (!isPointerCorrect(stk) || !isPointerCorrect((void *)copyFunction) || !isPointerCorrect(name) || !isPointerCorrect(fileName) || !isPointerCorrect(functionName) || (line <= 0) || (stk->status & INIT))
+  if (!isPointerCorrect(stk) || !isPointerCorrect(name) || !isPointerCorrect(fileName) || !isPointerCorrect(functionName) || (line <= 0) || (stk->status & INIT))
       {
         if (isPointerCorrect(error))
             *error = 1;
@@ -155,7 +152,6 @@ void do_stack_init(Stack *stk, size_t capacity, void (*copyFunction)(Element *, 
     stk->capacity         = capacity;
     stk->lastElementIndex = 0;
     stk->status           = INIT | EMPTY;
-    stk->copyFunction     = copyFunction;
 
 #ifndef RELEASE_BUILD_
 
@@ -208,24 +204,14 @@ void stack_destroy(Stack *stk, unsigned *error)
   stk->capacity         = 0;
   stk->lastElementIndex = 0;
 
-  stk->copyFunction = nullptr;
-
   stk->status |= DESTROY;
 
   UPDATE_HASH(stk);
 }
 
-void stack_push(Stack *stk, const Element *element, unsigned *error)
+void stack_push(Stack *stk, Element element, unsigned *error)
 {
   CHECK_VALID(stk, error);
-
-  if (!isPointerCorrect(element))
-  {
-    if (isPointerCorrect(error))
-      *error = 1;
-
-    return;
-  }
 
   if (stk->lastElementIndex == stk->capacity)
     {
@@ -240,7 +226,7 @@ void stack_push(Stack *stk, const Element *element, unsigned *error)
         }
     }
 
-  stk->copyFunction(&stk->array[(stk->lastElementIndex)++], element);
+  stk->array[(stk->lastElementIndex)++] = element;
 
   stk->status &= NOT_EMPTY;
 
@@ -249,30 +235,30 @@ void stack_push(Stack *stk, const Element *element, unsigned *error)
   CHECK_VALID(stk, error);
 }
 
-void stack_pop(Stack *stk, Element *element, unsigned *error)
+Element stack_pop(Stack *stk, unsigned *error)
 {
-  CHECK_VALID(stk, error);
+  CHECK_VALID(stk, error, 0);
 
-  if (!isPointerCorrect(element) || (stk->status & EMPTY))
+  if ((stk->status & EMPTY))
   {
     if (isPointerCorrect(error))
       *error = 1;
 
-    return;
+    return 0;
   }
 
-  stk->copyFunction(element, &stk->array[--(stk->lastElementIndex)]);
+  Element tempElement = stk->array[--(stk->lastElementIndex)];
 
-  Element poison = getPoison(&stk->array[0]);
+  Element poison = getPoison(stk->array[0]);
 
-  stk->copyFunction(&stk->array[stk->lastElementIndex], &poison);
+  stk->array[stk->lastElementIndex] = poison;
 
   if (stk->lastElementIndex == 0)
     stk->status |= EMPTY;
 
   UPDATE_HASH(stk);
 
-  if (stk->lastElementIndex < stk->capacity / DEFAULT_STACK_GROWTH - DEFAULT_STACK_OFFSET)
+  if ((int)stk->lastElementIndex < (int)(stk->capacity / DEFAULT_STACK_GROWTH - (int)DEFAULT_STACK_OFFSET))
     {
       stack_resize(stk, stk->capacity / DEFAULT_STACK_GROWTH);
 
@@ -281,13 +267,30 @@ void stack_pop(Stack *stk, Element *element, unsigned *error)
           if (isPointerCorrect(error))
             *error = 1;
 
-          return;
+          return 0;
         }
     }
 
   UPDATE_HASH(stk);
 
-  CHECK_VALID(stk, error);
+  CHECK_VALID(stk, error, 0);
+  
+  return tempElement;
+}
+
+Element stack_top(Stack *stk, unsigned *error)
+{
+  CHECK_VALID(stk, error, 0);
+
+  if ((stk->status & EMPTY))
+  {
+    if (isPointerCorrect(error))
+      *error = 1;
+
+    return 0;
+  }
+  
+  return stk->array[stk->lastElementIndex];
 }
 
 void stack_resize(Stack *stk, size_t newSize, unsigned *error)
@@ -301,10 +304,10 @@ void stack_resize(Stack *stk, size_t newSize, unsigned *error)
       if (!isPointerCorrect(stk->array))
         return;
 
-      Element poison = getPoison(&stk->array[0]);
+      Element poison = getPoison(stk->array[0]);
 
       for (size_t i = 0; i < newSize; ++i)
-        stk->copyFunction(&stk->array[i], &poison);
+        stk->array[i] = poison;
     }
   if (newSize)
     {
@@ -332,10 +335,10 @@ void stack_resize(Stack *stk, size_t newSize, unsigned *error)
 
           if (stk->capacity < newSize)
             {
-              Element poison = getPoison(&stk->array[0]);
+              Element poison = getPoison(stk->array[0]);
 
               for (size_t i = 0; i < newSize - stk->capacity; ++ i)
-                stk->copyFunction(&stk->array[stk->capacity + i], &poison);
+                stk->array[stk->capacity + i] = poison;
             }
 #endif
         }
@@ -429,8 +432,8 @@ static void createArray(Stack *stk, size_t size, unsigned *error)
 
 #endif
 
-  Element poison = getPoison(&stk->array[0]);
+  Element poison = getPoison(stk->array[0]);
 
   for (size_t i = 0; i < size; ++i)
-    stk->copyFunction(&stk->array[i], &poison);
+    stk->array[i] = poison;
 }

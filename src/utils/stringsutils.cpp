@@ -28,8 +28,14 @@ char **parseToLines(char *buffer, size_t bufferSize, size_t *lineCount)
     {
       strings[currentLine] = buffer + i;
 
-      while (buffer[i++])
-        ++lineSize;
+      while (buffer[i])
+        {
+          if (buffer[i] == ';')
+            buffer[i] = '\0';
+            
+          ++lineSize;
+          ++i;
+        }
 
       ++currentLine;
 

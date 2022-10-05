@@ -28,8 +28,6 @@ typedef struct {
   size_t capacity;
   size_t lastElementIndex;
 
-  void (*copyFunction)(Element *, const Element *);
-
   unsigned status;
 
 #ifndef RELEASE_BUILD_
@@ -58,23 +56,22 @@ unsigned enum ERROR {
   INCORRECT_STATUS                = 0x01 <<  2,
   NULL_ARRAY_POINTER              = 0x01 <<  3,
   CAPACITY_LESS_THAN_SIZE         = 0x01 <<  4,
-  NOT_COPYFUNCTION                = 0x01 <<  5,
-  LEFT_CANARY_DIED                = 0x01 <<  6,
-  RIGHT_CANARY_DIED               = 0x01 <<  7,
-  LEFT_ARRAY_CANARY_DIED          = 0x01 <<  8,
-  RIGHT_ARRAY_CANARY_DIED         = 0x01 <<  9,
-  NOT_NAME                        = 0x01 << 10,
-  NOT_FILE_NAME                   = 0x01 << 11,
-  NOT_FUNCTION_NAME               = 0X01 << 12,
-  INCORRECT_LINE                  = 0x01 << 13,
-  DIFFERENT_HASH                  = 0x01 << 14,
-  DIFFERENT_ARRAY_HASH            = 0x01 << 15
+  LEFT_CANARY_DIED                = 0x01 <<  5,
+  RIGHT_CANARY_DIED               = 0x01 <<  6,
+  LEFT_ARRAY_CANARY_DIED          = 0x01 <<  7,
+  RIGHT_ARRAY_CANARY_DIED         = 0x01 <<  8,
+  NOT_NAME                        = 0x01 <<  9,
+  NOT_FILE_NAME                   = 0x01 << 10,
+  NOT_FUNCTION_NAME               = 0X01 << 11,
+  INCORRECT_LINE                  = 0x01 << 12,
+  DIFFERENT_HASH                  = 0x01 << 13,
+  DIFFERENT_ARRAY_HASH            = 0x01 << 14
 };
 
 const unsigned NOT_EMPTY = -1u ^ (0x01 << 2);
 
 const unsigned STATUS_COUNT = 3;
-const unsigned ERRORS_COUNT = 16;
+const unsigned ERRORS_COUNT = 15;
 
 enum DUMP_LEVEL {
   DUMP_ALL,
@@ -89,8 +86,8 @@ extern DUMP_LEVEL DUMP_LVL;
 /// @return Code of error
 unsigned stack_valid(const Stack *stk);
 
-#define stack_init(stk, capacity, copyFunction)          \
-  do_stack_init(stk, capacity, copyFunction, INIT_INFO(stk))
+#define stack_init(stk, capacity)          \
+  do_stack_init(stk, capacity, INIT_INFO(stk))
 
 /// Init Stack
 /// @param [in/out] stk Pointer to stack for init
@@ -102,7 +99,7 @@ unsigned stack_valid(const Stack *stk);
 /// @param [in] line Line where was create variable
 /// @param [out] error Return error code
 /// @note Call before all using
-void do_stack_init(Stack *stk, size_t capacity, void (*copyFunction)(Element *, const Element *),
+void do_stack_init(Stack *stk, size_t capacity,
                   const char *name, const char *fileName, const char *functionName, int line,
                   unsigned *error = nullptr);
 
@@ -114,15 +111,21 @@ void stack_destroy(Stack *stk, unsigned *error = nullptr);
 
 /// Push one element to stack
 /// @param [in/out] stk Pointer to stack
-/// @param [in] element Pointer to element to push
+/// @param [in] element Element to push
 /// @param [out] error Return error code
-void stack_push(Stack *stk, const Element *element, unsigned *error = nullptr);
+void stack_push(Stack *stk, Element element, unsigned *error = nullptr);
 
 /// Pop one element from stack
 /// @param [in/out] stk Pointer to stack
-/// @param [out] element Container for pop-element
 /// @param [out] error Return error code
-void stack_pop(Stack *stk, Element *element, unsigned *error = nullptr);
+/// @return Pop-element
+Element stack_pop(Stack *stk, unsigned *error = nullptr);
+
+/// Top one element from stack
+/// @param [in/out] stk Pointer to stack
+/// @param [out] error Return error code
+/// @return Top-element
+Element stack_top(Stack *stk, unsigned *error = nullptr);
 
 /// Resize Stack`s array to new size
 /// @param [in/out] stk Pointer to stack for resize

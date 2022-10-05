@@ -41,7 +41,7 @@ int main(const int argc, const char *argv[])
   if (!isPointerCorrect(TARGET_FILE_NAME))
     ERROR;
 
-  FILE *targetFile = fopen(TARGET_FILE_NAME, "w");
+  FILE *targetFile = fopen(TARGET_FILE_NAME, OUTPUT_FILE_TYPE == BIN_OUTPUT_FILE ? "wb" : "w");
 
   if (!isPointerCorrect(targetFile))
     ERROR;

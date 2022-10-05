@@ -17,22 +17,21 @@ int MAX_LENGTH    = 0;
 int MIDDLE_LENGTH = 0;
 
 const char *ERRORS_MESSAGE[] = {      // errCode - errName
-  "Pointer to stack is NULL",	    	  // 2^0     - NULL_STACK_POINTER
-  "Stack was destroy without init",	  // 2^1     - DESTROY_WITHOUT_INIT
-  "Status is incorrect",	          	// 2^2     - INCORRECT_STATUS
-  "Pointer to stack`s array is NULL",	// 2^3     - NULL_ARRAY_POINTER
-  "Capacity less than size",		      // 2^4     - CAPACITY_LESS_THAN_SIZE
-  "Stack hasn`t a copyFunction",      // 2^5     - NOT_COPYFUNCTION
-  "Left canary is died",              // 2^6     - LEFT_CANARY_DIED
-  "Right canary is died",             // 2^7     - RIGHT_CANARY_DIED
-  "Left array canary is died",        // 2^8     - LEFT_ARRAY_CANARY_DIED
-  "Right array canary is died",       // 2^9     - RIGHT_ARRAY_CANARY_DIED
-  "Stack hasn`t a name",              // 2^10    - NOT_NAME
-  "Stack hasn`t a file name",         // 2^11    - NOT_FILE_NAME
-  "Stack hasn`t a function name",     // 2^12    - NOT_FUNCTION_NAME
-  "Stack hasn`t a correct line",      // 2^13    - INCORRECT_LINE
-  "Stack hash is corrupted",          // 2^14    - DIFFERENT_HASH
-  "Stack`s array hash is corrupted"   // 2^15    - DIFFERENT_ARRAY_HASH
+  "Pointer to stack is NULL",	      // 2^0     - NULL_STACK_POINTER
+  "Stack was destroy without init",   // 2^1     - DESTROY_WITHOUT_INIT
+  "Status is incorrect",	      // 2^2     - INCORRECT_STATUS
+  "Pointer to stack`s array is NULL", // 2^3     - NULL_ARRAY_POINTER
+  "Capacity less than size",	      // 2^4     - CAPACITY_LESS_THAN_SIZE
+  "Left canary is died",              // 2^5     - LEFT_CANARY_DIED
+  "Right canary is died",             // 2^6     - RIGHT_CANARY_DIED
+  "Left array canary is died",        // 2^7     - LEFT_ARRAY_CANARY_DIED
+  "Right array canary is died",       // 2^8     - RIGHT_ARRAY_CANARY_DIED
+  "Stack hasn`t a name",              // 2^9     - NOT_NAME
+  "Stack hasn`t a file name",         // 2^10    - NOT_FILE_NAME
+  "Stack hasn`t a function name",     // 2^11    - NOT_FUNCTION_NAME
+  "Stack hasn`t a correct line",      // 2^12    - INCORRECT_LINE
+  "Stack hash is corrupted",          // 2^13    - DIFFERENT_HASH
+  "Stack`s array hash is corrupted"   // 2^14    - DIFFERENT_ARRAY_HASH
 };
 
 const char *STATUS_NAME[] = {
@@ -106,7 +105,7 @@ void do_stack_dump(const Stack *stk, unsigned errorCode, FILE *filePtr,
 
   if (isPointerCorrect(stk) && isPointerCorrect(stk->array))
     {
-      MAX_LENGTH    = maxElementLength(&stk->array[0]);
+      MAX_LENGTH    = maxElementLength(stk->array[0]);
 
       MIDDLE_LENGTH = (MAX_LENGTH + 1) / 2;
     }
@@ -190,10 +189,10 @@ static void printAddress(const Stack *stk, FILE *filePtr)
   if (!isPointerCorrect(stk->array))
     return;
 
-  int firstSize = elementLength(&stk->array[0]) < MIDDLE_LENGTH ?
+  int firstSize = elementLength(stk->array[0]) < MIDDLE_LENGTH ?
     MIDDLE_LENGTH : MAX_LENGTH;
 
-  if (isPoison(&stk->array[0]))
+  if (isPoison(stk->array[0]))
     firstSize = POISON_LENGTH;
 
   fprintf(filePtr, "%p\n%*s|\n%*s|\n%*sV\n",
@@ -219,9 +218,9 @@ static void printBorder(const Stack *stk, FILE *filePtr)
           return;
         }
 
-      int size = elementLength(&stk->array[i]) < MIDDLE_LENGTH ? MIDDLE_LENGTH : MAX_LENGTH;
+      int size = elementLength(stk->array[i]) < MIDDLE_LENGTH ? MIDDLE_LENGTH : MAX_LENGTH;
 
-      if (isPoison(&stk->array[i]) && i >= stk->lastElementIndex)
+      if (isPoison(stk->array[i]) && i >= stk->lastElementIndex)
         {
           if (DUMP_LVL == DUMP_NOT_POISON)
             {
@@ -271,9 +270,9 @@ static void printLine(const Stack *stk, FILE *filePtr)
 
       const char ch = i < stk->lastElementIndex ? ' ' : '=';
 
-      int size = elementLength(&stk->array[i]) < MIDDLE_LENGTH ? MIDDLE_LENGTH : MAX_LENGTH;
+      int size = elementLength(stk->array[i]) < MIDDLE_LENGTH ? MIDDLE_LENGTH : MAX_LENGTH;
 
-      if (isPoison(&stk->array[i]) && i >= stk->lastElementIndex)
+      if (isPoison(stk->array[i]) && i >= stk->lastElementIndex)
         {
           if (DUMP_LVL == DUMP_NOT_POISON)
             {
@@ -319,11 +318,11 @@ static void printValues(const Stack *stk, FILE *filePtr)
           return;
         }
 
-      int elementSize = elementLength(&stk->array[i]);
+      int elementSize = elementLength(stk->array[i]);
 
       int size = elementSize < MIDDLE_LENGTH ? MIDDLE_LENGTH : MAX_LENGTH;
 
-      if (isPoison(&stk->array[i]) && i >= stk->lastElementIndex)
+      if (isPoison(stk->array[i]) && i >= stk->lastElementIndex)
         {
           if (DUMP_LVL == DUMP_NOT_POISON)
             {
@@ -351,7 +350,7 @@ static void printValues(const Stack *stk, FILE *filePtr)
       for (int j = 0; j < size- elementSize; ++j)
         fputc(' ', filePtr);
 
-      printElement(&stk->array[i], filePtr);
+      printElement(stk->array[i], filePtr);
     }
 
   fprintf(filePtr, "|\n");
@@ -366,16 +365,16 @@ static void printArrow(const Stack *stk, FILE *filePtr)
 
   for (size_t i = 0; i < stk->lastElementIndex - 1; ++i)
     {
-      int size = elementLength(&stk->array[i]) < MIDDLE_LENGTH ? MIDDLE_LENGTH : MAX_LENGTH;
+      int size = elementLength(stk->array[i]) < MIDDLE_LENGTH ? MIDDLE_LENGTH : MAX_LENGTH;
 
-      if (isPoison(&stk->array[i])  && i >= stk->lastElementIndex)
+      if (isPoison(stk->array[i])  && i >= stk->lastElementIndex)
         size = POISON_LENGTH;
 
       for (int j = 0; j < size + 1; ++j)
         fputc('>', filePtr);
     }
 
-  int size = elementLength(&stk->array[stk->lastElementIndex - 1]) < MIDDLE_LENGTH ? MIDDLE_LENGTH : MAX_LENGTH;
+  int size = elementLength(stk->array[stk->lastElementIndex - 1]) < MIDDLE_LENGTH ? MIDDLE_LENGTH : MAX_LENGTH;
 
   for (int j = 0; j < size - 1; ++j)
     fputc('>', filePtr);

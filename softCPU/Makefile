@@ -1,6 +1,6 @@
 CC   := g++
 NAME := a.out
-ARGS :=
+ARGS := a.bin
 
 LOGFILE := compileLog
 
@@ -8,9 +8,9 @@ CFLAGS := -D _DEBUG -ggdb3 -std=c++17 -O0 -Wall -Wextra -Weffc++ -Waggressive-lo
 SANITIZERS := #-fsanitize=address,leak #,alignment,bool,bounds,enum,float-cast-overflow,float-divide-by-zero,integer-divide-by-zero,leak,nonnull-attribute,null,object-size,return,returns-nonnull-attribute,shift,signed-integer-overflow,undefined,unreachable,vla-bound,vptr
 LFLAGS := -lpthread
 
-SRCDIR := src
+SRCDIR := src ../src src/stack ../src/utils ../src/logging
 OBJDIR := objects
-INCDIR := include
+INCDIR := include ../include ../include/logging ../include/utils include/stack 
 DEPDIR := dependences
 
 SOURCES     := $(wildcard $(addsuffix /*.cpp, $(if $(SRCDIR), $(SRCDIR), .)) )
@@ -22,7 +22,7 @@ VPATH := $(SRCDIR)
 .PHONY: clean run  dependences cleanDependences makeDependencesDir objects
 
 $(NAME):  dependences objects $(OBJECTS) cleanDependences
-	@$(if $(OBJECTS), $(CC) $(LFLAGS) $(OBJECTS) -o $@ 2>>$(LOGFILE))
+	@$(if $(OBJECTS), $(CC) $(LFLAGS) $(OBJECTS) -o $@ #2>>$(LOGFILE))
 
 clean:
 	@rm -rf $(OBJECTS) $(DEPENDENCES) $(DEPDIR) $(NAME)
@@ -36,7 +36,7 @@ makeDependencesDir:
 	@$(if $(DEPDIR), mkdir -p $(DEPDIR))
 
 $(if $(DEPDIR), $(DEPDIR)/%.d, %.d): %.cpp
-	@$(CC) -M $(addprefix -I, $(INCDIR)) $< -o $@ 2>>$(LOGFILE)
+	@$(CC) -M $(addprefix -I, $(INCDIR)) $< -o $@ #2>>$(LOGFILE)
 
 cleanDependences:
 	@rm -rf $(DEPENDENCES) $(DEPDIR)
@@ -45,6 +45,6 @@ objects:
 	@$(if $(OBJDIR), mkdir -p $(OBJDIR))
 
 $(if $(OBJDIR), $(OBJDIR)/%.o, %.o): %.cpp
-	@$(CC) -c $(addprefix -I, $(INCDIR)) $(CFLAGS) $(SANITIZERS) $< -o $@ 2>>$(LOGFILE)
+	@$(CC) -c $(addprefix -I, $(INCDIR)) $(CFLAGS) $(SANITIZERS) $< -o $@ #2>>$(LOGFILE)
 
 include $(wildcard $(DEPDIR)/*.d)

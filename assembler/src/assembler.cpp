@@ -9,14 +9,6 @@
 #include "stringsutils.h"
 #include "settings.h"
 
-/// Generate title for output file
-/// @param [in] cmdCount Count of cmd in source file
-/// @param [in] fileMode Type of output executable file 
-/// @param [out] titleSize size of title
-/// @return Pointer to dimanic memory with title
-/// @note In bin mode title isn`t a C-like string
-static char *generateTitle(int cmdCount, int fileMode, size_t *titleSize);
-
 /// Count length of int value
 /// @param [in] value Integer value witch length need to know
 /// @return Length of int-value
@@ -29,9 +21,7 @@ static size_t intLength(int value);
 static void write(void *buffer, int val, int fileMode);
 
 void assembler(char **sourceLines, size_t lineCount, FILE *targetFile, int fileMode)
-{
-  int cmdCount = (int)lineCount;
-  
+{  
   int *array = nullptr;
   
   if (fileMode == BIN_OUTPUT_FILE)
@@ -41,41 +31,48 @@ void assembler(char **sourceLines, size_t lineCount, FILE *targetFile, int fileM
       if (!isPointerCorrect(array))
         handleError("Out of memory in file %s at line %d!!", __FILE__, __LINE__);
     }
-    
-  size_t titleSize = 0;
-    
-  char *title = generateTitle(cmdCount, fileMode, &titleSize);
+  
+  Title title = {};
+  
+  title.securityCode[0] = SECURITY_CODE[0];
+  title.securityCode[1] = SECURITY_CODE[1];
+  title.securityCode[2] = SECURITY_CODE[2];
+  
+  title.version = SOFTCPU_CMD_VERSION;
+  
+  title.cmdCount = lineCount;
 	
   switch (fileMode)
   {
   case BIN_OUTPUT_FILE:
     {
-      fwrite(&title, titleSize, sizeof(char), targetFile);
+      if (fwrite(&title, sizeof(title), 1, targetFile) != 1)
+      	ERROR;
   
       break;
     }
   case TXT_OUTPUT_FILE:
     {
-      fprintf(targetFile, "%s\n", title);
+      fprintf(targetFile, "%s %d %d\n", title.securityCode, title.version, title.cmdCount);
       
       break;
     }
   default:
     {
-      handleError("Error in file %s at line %d", __FILE__, __LINE__);
+      ERROR;
     }
   }
-    
-  free(title);
+  
+  size_t lastIndex = 0;
 
-  for (size_t i = 0; i < lineCount; ++i)
+  for (size_t i = 0; i < lineCount; ++i, ++lastIndex)
     {
       char cmd[MAX_WORD_LENGTH + 1] = "";
       
       if (sscanf(sourceLines[i], "%s", cmd) != 1)
-        continue;
+        ;//continue;
       
-      void *temp = fileMode == BIN_OUTPUT_FILE ? (void *)(array + i++) : (void *)sourceLines[i];
+      char *temp = fileMode == BIN_OUTPUT_FILE ? (char *)(array + lastIndex++) : (char *)sourceLines[i];
 
       if      (!stricmp(cmd, SOFTCPU_CMD[SOFTCPU_PUSH]))
         {
@@ -88,8 +85,8 @@ void assembler(char **sourceLines, size_t lineCount, FILE *targetFile, int fileM
           
           if      (fileMode == BIN_OUTPUT_FILE)
             {
-              write((array + i++), SOFTCPU_PUSH, fileMode);
-              write((array + i)  , num         , fileMode);
+              write(temp                       , SOFTCPU_PUSH, fileMode);
+              write(temp + sizeof(SOFTCPU_PUSH), num         , fileMode);
             }
           else if (fileMode == TXT_OUTPUT_FILE)
             {
@@ -140,7 +137,7 @@ void assembler(char **sourceLines, size_t lineCount, FILE *targetFile, int fileM
         }
         else
         {
-           handleError("Unknown cmd!!");
+           handleError("Unknown cmd[%s] in line %d!!", cmd, i + 1);
         }
     }
     
@@ -154,50 +151,6 @@ void assembler(char **sourceLines, size_t lineCount, FILE *targetFile, int fileM
     
     if (fileMode == BIN_OUTPUT_FILE)
       free(array);
-}
-
-static char *generateTitle(int cmdCount, int fileMode, size_t *titleSize)
-{
-  char *title = nullptr;
-
-  switch (fileMode)
-  {
-  case BIN_OUTPUT_FILE:
-    {
-      *titleSize = 2*sizeof(char) + 2*sizeof(int);
-    
-      title = (char *)calloc(1, *titleSize);
-  
-      if (!isPointerCorrect(title))
-  	handleError("Out of memory in file %s at line %d!!", __FILE__, __LINE__);
-  
-      title[0] = 'D';
-      title[1] = 'B';
-      *((int *)(title + 2) + 0) = SOFTCPU_CMD_VERSION;
-      *((int *)(title + 2) + 1) = cmdCount;
-  
-      break;
-    }
-  case TXT_OUTPUT_FILE:
-    {
-      *titleSize = 5*sizeof(char) + intLength(cmdCount) + intLength(SOFTCPU_CMD_VERSION);
-      
-      title = (char *)calloc(1, *titleSize);
-      
-      if (!isPointerCorrect(title))
-  	handleError("Out of memory in file %s at line %d!!", __FILE__, __LINE__);
-  	
-      sprintf(title, "DB %d %d", SOFTCPU_CMD_VERSION, cmdCount);
-      
-      break;
-    }
-  default:
-    {
-      handleError("Error in file %s at line %d", __FILE__, __LINE__);
-    }
-  }
-  
-  return title;
 }
 
 static size_t intLength(int value)

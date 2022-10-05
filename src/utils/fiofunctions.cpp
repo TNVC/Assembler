@@ -39,3 +39,11 @@ size_t readFile(char **buffer, const char *filename)
 
   return size;
 }
+
+int readBin(void *buffer, size_t elementSize, size_t size, FILE *filePtr)
+{
+  if (!isPointerCorrect(buffer))
+      return FIOFUNCTIONS_INCORRECT_ARGUMENTS;
+      
+  return fread(buffer, elementSize, size, filePtr);
+}

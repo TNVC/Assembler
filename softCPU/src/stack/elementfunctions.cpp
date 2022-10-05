@@ -4,21 +4,16 @@
 
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 
-int printElement(const int *element, FILE *filePtr)
+int printElement(int element, FILE *filePtr)
 {
-  if (!isPointerCorrect(element) || !isPointerCorrect(filePtr))
+  if (!isPointerCorrect(filePtr))
     return -1;
 
-  return fprintf(filePtr, "%d", *element);
+  return fprintf(filePtr, "%d", element);
 }
 
-int elementLength(const int *element)
+int elementLength(int value)
 {
-  if (!isPointerCorrect(element))
-    return -1;
-
-  int value = *element;
-
   int charsNum = !(value > 0);
 
   value = value * !charsNum - value * charsNum;
@@ -32,20 +27,17 @@ int elementLength(const int *element)
   return charsNum;
 }
 
-int maxElementLength(const int *element)
+int maxElementLength(int element)
 {
   return 12;
 }
 
-int getPoison(const int *element)
+int getPoison(int element)
 {
   return (int)0xDED00DED;
 }
 
-int isPoison(const int *element)
+int isPoison(int element)
 {
-  if (!isPointerCorrect(element))
-    return 0;
-
-  return (int)0xDED00DED == *element;
+  return (int)0xDED00DED == element;
 }

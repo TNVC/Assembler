@@ -5,15 +5,24 @@
 
 const char SOFTCPU_CMD_VERSION = 1;
 
+const char SECURITY_CODE[] = "DB";
+
+typedef int command;
+
+struct Title {
+  char securityCode[3];
+  char version;
+  int cmdCount;
+};
+
 enum SoftCpuCmd {
-QQQ,
+  SOFTCPU_HLT ,
   SOFTCPU_PUSH,
   SOFTCPU_ADD ,
   SOFTCPU_SUB ,
   SOFTCPU_MUL ,
   SOFTCPU_DIV ,
   SOFTCPU_OUT ,
-  SOFTCPU_HLT ,
   SOFTCPU_DUMP,
   SOFTCPU_IN  ,
   SOFTCPU_COPY,
@@ -21,14 +30,13 @@ QQQ,
 };
 
 const char *SOFTCPU_CMD[] = {
-"",
+  "HLT" ,
   "PUSH",
   "ADD" ,
   "SUB" ,
   "MUL" ,
   "DIV" ,
   "OUT" ,
-  "HLT" ,
   "DUMP",
   "IN"  ,
   "COPY",
@@ -36,9 +44,8 @@ const char *SOFTCPU_CMD[] = {
 };
 
 const int SOFTCPU_WORD_LENGTH[] = {
--1,
-  4,
   3,
+  4,
   3,
   3,
   3,
