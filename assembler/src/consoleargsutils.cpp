@@ -1,15 +1,10 @@
 #include <string.h>
 #include "consoleargsutils.h"
-#include "settings.h"
+#include "garbagecollector.h"
 #include "systemlike.h"
 #include "errorhandler.h"
-
-#define CHECK_FILE(FILE_NAME)  		                                       \
-  do                                                                           \
-    {                                                                          \
-      if (!isFileExists(FILE_NAME))                                            \
-        handleError("No such file [%s]", FILE_NAME); 			       \
-    } while (0)
+#include "settings.h"
+#include "asserts.h"
 
 const int IN  = 0;
 const int OUT = 1;
@@ -25,7 +20,8 @@ const char *FLAGS[] = {
 
 /// Handle flag -in
 /// @param [in] argument Argument for -in
-static void handleIn (const char *argument);
+/// @return Zero is all was Ok or NO_SUCH_FILE_FOUND if argument isn`t a file name
+static int handleIn (const char *argument);
 
 /// Handle flag -out
 /// @param [in] argument Argument for -out
@@ -46,34 +42,49 @@ static void handleIncorrectArgument(const char *flag, const char *argument);
 /// @param [in] flag Name of unknown flag
 static void handleUnknownFlag      (const char *flag);
 
-void parseConsoleArgs(const int argc, const char *argv[])
+int parseConsoleArgs(const int argc, const char * const argv[])
 {
-  if (argc <= 0 || !isPointerCorrect(argv))
-    handleError("Inccorect arguments");
+  assert(argv);
+  assert(argc > 0);
 
-  PROGRAMM_NAME = argv[0];
-  SOURCE_FILE_NAME = nullptr;
-  TARGET_FILE_NAME = nullptr;
-  OUTPUT_FILE_TYPE = NOT_INIT_OUTPUT_FILE;
+  setProgrammName(argv[0]);
+  setSourceFileName(nullptr);
+  setTargetFileName(nullptr);
+  setTargetFileMode(NOT_INIT_TARGET_FILE);
 
   if (argc < 2)
+    {
       handleError("No input files");
+
+      return NO_INPUT_FILES;
+    }
 
   for (int i = 1; i < argc; ++i)
     {
       if      (!strcmp(argv[i], FLAGS[IN]))
         {
           if (++i < argc && argv[i][0] != '-')
-            handleIn(argv[i]);
+            {
+              if (handleIn(argv[i]) == NO_SUCH_FILE_FOUND)
+                return NO_SUCH_FILE_FOUND;
+            }
           else
-            handleIncorrectArgument(argv[i - 1], i < argc ? argv[i] : "nothing");
+            {
+              handleIncorrectArgument(argv[i - 1], i < argc ? argv[i] : "nothing");
+
+              return INCORRECT_ARGUMENTS;
+            }
         }
       else if (!strcmp(argv[i], FLAGS[OUT]))
         {
           if (++i < argc && argv[i][0] != '-')
             handleOut(argv[i]);
           else
-            handleIncorrectArgument(argv[i - 1], i < argc ? argv[i] : "nothing");
+            {
+              handleIncorrectArgument(argv[i - 1], i < argc ? argv[i] : "nothing");
+
+              return INCORRECT_ARGUMENTS;
+            }
         }
       else if (!strcmp(argv[i], FLAGS[BIN]))
         {
@@ -89,39 +100,58 @@ void parseConsoleArgs(const int argc, const char *argv[])
         }
       else
         {
-          handleIn(argv[i]);
+          if (handleIn(argv[i]) == NO_SUCH_FILE_FOUND)
+            return NO_SUCH_FILE_FOUND;
         }
     }
 
-  if (!SOURCE_FILE_NAME)
+  if (!getSourceFileName())
+    {
       handleError("No input files");
-      
-  if (!TARGET_FILE_NAME)
-      TARGET_FILE_NAME = strdup(DEFAULT_TARGET_FILE_NAME);
-      
-  if (OUTPUT_FILE_TYPE == NOT_INIT_OUTPUT_FILE)
-    OUTPUT_FILE_TYPE = BIN_OUTPUT_FILE;
+
+      return NO_INPUT_FILES;
+    }
+
+  if (!getTargetFileName())
+    setTargetFileName(strdup(DEFAULT_TARGET_FILE_NAME));
+
+
+  if (getTargetFileMode() == NOT_INIT_TARGET_FILE)
+    setTargetFileMode(BIN_TARGET_FILE);
+
+  return 0;
 }
 
-static void handleIn (const char *argument)
+static int handleIn (const char *argument)
 {
-  if (!SOURCE_FILE_NAME)
+  if (!getSourceFileName())
     {
-      CHECK_FILE(argument);
-      
-      SOURCE_FILE_NAME = strdup(argument);
+      if (!isFileExists(argument))
+        {
+          handleError("No such file [%s]", argument);
+
+          return NO_SUCH_FILE_FOUND;
+        }
+
+      setSourceFileName(strdup(argument));
+
+      addElementForFree(getSourceFileName());
     }
   else
     {
       handleWarning("Too many intput files [%s]", argument);
     }
+
+  return 0;
 }
 
 static void handleOut(const char *argument)
 {
-  if (!TARGET_FILE_NAME)
+  if (!getTargetFileName())
     {
-      TARGET_FILE_NAME = strdup(argument);
+      setTargetFileName(strdup(argument));
+
+      addElementForFree(getTargetFileName());
     }
   else
     {
@@ -131,18 +161,18 @@ static void handleOut(const char *argument)
 
 static void handleBin()
 {
-  if (OUTPUT_FILE_TYPE != NOT_INIT_OUTPUT_FILE)
+  if (getTargetFileMode() != NOT_INIT_TARGET_FILE)
     handleWarning("Too many flags for output file format");
   else
-    OUTPUT_FILE_TYPE = BIN_OUTPUT_FILE;
+    setTargetFileMode(BIN_TARGET_FILE);
 }
 
 static void handleTxt()
 {
-  if (OUTPUT_FILE_TYPE != NOT_INIT_OUTPUT_FILE)
+  if (getTargetFileMode() != NOT_INIT_TARGET_FILE)
     handleWarning("Too many flags for output file format");
   else
-    OUTPUT_FILE_TYPE = TXT_OUTPUT_FILE;
+    setTargetFileMode(TXT_TARGET_FILE);
 }
 
 static void handleIncorrectArgument(const char *flag, const char *argument)
@@ -152,5 +182,5 @@ static void handleIncorrectArgument(const char *flag, const char *argument)
 
 static void handleUnknownFlag(const char *flag)
 {
-  handleWarning("Unknow flag [%s]", flag);      
+  handleWarning("Unknow flag [%s]", flag);
 }

@@ -1,64 +1,112 @@
 #include <stdlib.h>
+#include "assembler.h"
+#include "softcpucmd.h"
+#include "consoleargsutils.h"
+#include "garbagecollector.h"
 #include "fiofunctions.h"
+#include "line.h"
 #include "stringsutils.h"
 #include "settings.h"
-#include "consoleargsutils.h"
-#include "assembler.h"
-#include "systemlike.h"
 #include "errorhandler.h"
- 
-static char **LINES = nullptr; 
-      
-static void freeResources();
-      
-int main(const int argc, const char *argv[])
+#include "systemlike.h"
+
+int main(const int argc, const char * const argv[])
 {
-  atexit(freeResources);
+  if (parseConsoleArgs(argc, argv))
+    return 0;
 
-  parseConsoleArgs(argc, argv);
+  if (!getSourceFileName())
+    {
+      handleError("SOURCE_FILE_NAME is nullptr. File: %s, Line: %d",
+                  __FILE__, __LINE__);
 
-  char  *buffer    = nullptr;
-  size_t lineCount = 0;
-  size_t size      = 0;
+      return 0;
+    }
 
-  if (!isPointerCorrect(SOURCE_FILE_NAME))
-    ERROR;
+  Strings strings = {};
 
-  size = readFile(&buffer, SOURCE_FILE_NAME);
+  initStrings(&strings);
 
-  if ((size_t)FIOFUNCTIONS_OUT_OF_MEM          == size ||
-      (size_t)FIOFUNCTIONS_FAIL_TO_OPEN        == size ||
-      (size_t)FIOFUNCTIONS_INCORRECT_ARGUMENTS == size)
-    ERROR;
+  strings.size = readFile(&strings.originBuffer, getSourceFileName());
 
-  char **lines = parseToLines(buffer, size, &lineCount);
-  
-  LINES = lines;
+  switch (strings.size)
+    {
+    case (size_t)FIOFUNCTIONS_OUT_OF_MEM:
+      {
+        handleError("Out of memory");
 
-  if (!isPointerCorrect(lines))
-    ERROR;
-    
-  if (!isPointerCorrect(TARGET_FILE_NAME))
-    ERROR;
+        destroyStrings(&strings);
 
-  FILE *targetFile = fopen(TARGET_FILE_NAME, OUTPUT_FILE_TYPE == BIN_OUTPUT_FILE ? "wb" : "w");
+        return 0;
+      }
+    case (size_t)FIOFUNCTIONS_FAIL_TO_OPEN:
+      {
+        handleError("Fail to open file [%s]", getSourceFileName());
 
-  if (!isPointerCorrect(targetFile))
-    ERROR;
+        destroyStrings(&strings);
 
-  assembler(lines, lineCount, targetFile, OUTPUT_FILE_TYPE);
-  
+        return 0;
+      }
+    case (size_t)FIOFUNCTIONS_INCORRECT_ARGUMENTS:
+      {
+        handleError("readFile() got incorrect arguments. File: %s, Line: %d",
+                    __FILE__, __LINE__);
+
+        destroyStrings(&strings);
+
+        return 0;
+      }
+    }
+
+  strings.sequence = parseToLines(strings.originBuffer, strings.size, &strings.stringsCount);
+
+
+  if (!strings.sequence)
+    {
+      handleError("Out of memory");
+
+      destroyStrings(&strings);
+
+      return 0;
+    }
+
+  if (!getTargetFileName())
+    {
+      handleError("TARGET_FILE_NAME is nullptr. File: %d, Line: %d",
+                  __FILE__, __LINE__);
+
+      destroyStrings(&strings);
+
+      return 0;
+    }
+
+  FILE *targetFile = fopen(getTargetFileName(),
+                           (getTargetFileMode() == BIN_TARGET_FILE) ? "wb" : "w");
+
+  if (!targetFile)
+    {
+      handleError("Cannot open file [%d]", getTargetFileName());
+
+      destroyStrings(&strings);
+
+      return 0;
+    }
+
+  Assembler assembler = {};
+
+  if (compile(&assembler, strings.sequence, strings.stringsCount, targetFile))
+    return 0;
+
+  compile(&assembler, strings.sequence, strings.stringsCount, targetFile);
+
+  Title title = generateTitle(&assembler);
+
+  fwrite(&title, sizeof(title), 1 , targetFile);
+  fwrite(assembler.code  , sizeof(char) , assembler.codeCapacity, targetFile);
+
   fclose(targetFile);
-  
-  return 0;
-}
 
-static void freeResources()
-{
-  if (isPointerCorrect(SOURCE_FILE_NAME))
-    free(SOURCE_FILE_NAME);
-  if (isPointerCorrect(TARGET_FILE_NAME))
-    free(TARGET_FILE_NAME);
-  if (isPointerCorrect(LINES))
-    free(LINES);
+  destroyStrings(&strings);
+
+  return 0;
 }

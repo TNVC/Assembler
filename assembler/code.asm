@@ -1,9 +1,12 @@
-push 10
-push 20
-add
 push 1
-push 2
-add
-div
-out
+push [1]
+ dany:
+push :1
+push rcx
+ egor:
+push [rbx]
+push :dany
+
+
+1:
 hlt
