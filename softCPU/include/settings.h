@@ -1,10 +1,20 @@
 #ifndef SETTINGS_H_
 #define SETTINGS_H_
 
-/// Link defination of name of source file
-extern char *SOURCE_FILE_NAME;
+/// Getter for SOURCE_FILE_NAME
+/// @return Current value of SOURCE_FILE_NAME
+char *getSourceFileName();
 
-/// Link defination of current name of this programm 
-extern const char *PROGRAMM_NAME;
+/// Setter for SOURCE_FILE_NAME
+/// @param [in] fileName New value for field
+void setSourceFileName(char *fileName);
+
+/// Getter for PROGRAMM_NAME
+/// @return Current value of PROGRAMM_NAME
+const char *getProgrammName();
+
+/// Setter for PROGRAMM_NAME
+/// @param [in] fileName New value for field
+void setProgrammName(const char *name);
 
 #endif

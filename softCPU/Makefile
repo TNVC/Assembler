@@ -1,5 +1,5 @@
 CC   := g++
-NAME := a.out
+NAME := softcpu
 ARGS := a.bin
 
 LOGFILE := compileLog
@@ -26,6 +26,9 @@ $(NAME):  dependences objects $(OBJECTS) cleanDependences
 
 clean:
 	@rm -rf $(OBJECTS) $(DEPENDENCES) $(DEPDIR) $(NAME)
+
+check: clean $(NAME)
+	@$(if $(NAME), valgrind --leak-check=yes ./$(NAME) $(ARGS))
 
 run: clean $(NAME)
 	@$(if $(NAME), ./$(NAME) $(ARGS))
