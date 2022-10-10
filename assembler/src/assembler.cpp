@@ -13,8 +13,9 @@
 /// @param [in/out] assembler Assembler object with bin code of compile programm
 /// @param [in] string C-like string start with first char after cmd word
 /// @param [in] pc Pointer to pc
+/// @param [in] listingFile File for write listing
 /// @return 1 if was syntax error or 0 if was not
-static int parseArgs(Assembler *assembler, char *string, size_t *pc);
+static int parseArgs(Assembler *assembler, char *string, size_t *pc, FILE *listingFile);
 
 /// Return register number with name
 /// @param [in] name Name supposed a register name
@@ -28,18 +29,10 @@ static int getRegNumber(const char *name);
 /// @return 1 if assembler cells contain label with 'name' or 0 if don`t
 static int findLabel(const Assembler *assembler, const char *name, int *address);
 
-static void print(Assembler *ass)
-{
-  for (size_t i = 0; i < ass->codeCapacity; ++i)
-    printf("%1.1X%1.1X ", (ass->code[i] & 0xf0) >> 4, (ass->code[i] & 0x0f));
-  printf("\n");
-}
-
-int compile(Assembler *assembler, String *strings, size_t stringsCount, FILE *targetFile)
+int compile(Assembler *assembler, String *strings, size_t stringsCount, FILE *listingFile)
 {
   assert(assembler);
   assert(strings);
-  assert(targetFile);
 
   ++assembler->compilationTime;
 
@@ -60,9 +53,6 @@ int compile(Assembler *assembler, String *strings, size_t stringsCount, FILE *ta
 
   for (size_t i = 0; i < stringsCount; ++i)
     {
-      //printf("start: ");
-      //print(assembler);////////////////////
-      //printf("start: %zu\n", pc);
       if (assembler->compilationTime == 1 && pc + sizeof(int) + sizeof(char) >= assembler->codeCapacity)
         {
           char *temp = (char *)recalloc(assembler->code,
@@ -74,8 +64,6 @@ int compile(Assembler *assembler, String *strings, size_t stringsCount, FILE *ta
           if (!temp)
             {
               handleError("Out of memory");
-
-              free(assembler->code);
 
               return ASSEMBLER_OUT_OF_MEMORY;
             }
@@ -90,176 +78,41 @@ int compile(Assembler *assembler, String *strings, size_t stringsCount, FILE *ta
       if (sscanf(strings[i].buff, "%4s%n", cmdString, &offset) != 1)
         continue;
 
-      if      (!stricmp(cmdString, SOFTCPU_CMD[SOFTCPU_PUSH]))
-        {
-          assembler->code[pc++] = SOFTCPU_PUSH;
 
-          if (parseArgs(assembler, strings[i].buff + offset, &pc))
-            {
-              handleError("Incorrect arguments in line [%d]", i + 1);
+#define DEF_CMD(name, num, hasArg, ...)                                 \
+      if (!stricmp(cmdString, #name))                                   \
+    {                                                                   \
+      assembler->code[pc++] = num;                                      \
+                                                                        \
+      if (listingFile)                                                  \
+        {                                                               \
+          fprintf(listingFile, "%06lX ", pc);                           \
+                                                                        \
+          fprintf(listingFile, "%02X ", (unsigned)num);                 \
+        }                                                               \
+                                                                        \
+      if (hasArg &&                                                     \
+          parseArgs(assembler,                                          \
+                    strings[i].buff + offset,                           \
+                    &pc, listingFile))                                  \
+        {                                                               \
+          handleError("Incorrect arguments in line [%d]", i + 1);       \
+                                                                        \
+          return ASSEMBLER_INCORRECT_ARGUMENTS;                         \
+        }                                                               \
+      else if (!hasArg && !isStringEmpty(strings[i].buff + offset))     \
+        {                                                               \
+          handleError("Unknown syntax in line [%d]", i + 1);            \
+                                                                        \
+          return ASSEMBLER_UNKNOWN_SYNTAX;                              \
+        }                                                               \
+    }                                                                   \
+  else                                                                  \
 
-              free(assembler->code);
+#include "cmd.h"
 
-              return ASSEMBLER_INCORRECT_ARGUMENTS;
-            }
-        }
-      else if (!stricmp(cmdString, SOFTCPU_CMD[SOFTCPU_POP]))
-        {
-          assembler->code[pc++] = SOFTCPU_POP;
+#undef DEF_CMD
 
-          if (parseArgs(assembler, strings[i].buff + offset, &pc))
-            {
-              handleError("Incorrect arguments in line [%d]", i + 1);
-
-              free(assembler->code);
-
-              return ASSEMBLER_INCORRECT_ARGUMENTS;
-            }
-        }
-      else if (!stricmp(cmdString, SOFTCPU_CMD[SOFTCPU_JMP]))
-        {
-          assembler->code[pc++] = SOFTCPU_JMP;
-
-          if (parseArgs(assembler, strings[i].buff + offset, &pc))
-            {
-              handleError("Incorrect arguments in line [%d]", i + 1);
-
-              free(assembler->code);
-
-              return ASSEMBLER_INCORRECT_ARGUMENTS;
-            }
-        }
-      else if (!stricmp(cmdString, SOFTCPU_CMD[SOFTCPU_ADD]))
-        {
-          assembler->code[pc++] = SOFTCPU_POP;
-
-          if (!isStringEmpty(strings[i].buff + offset))
-            {
-              handleError("Unknown syntax in line [%d]", i + 1);
-
-              free(assembler->code);
-
-              return ASSEMBLER_UNKNOWN_SYNTAX;
-            }
-        }
-      else if (!stricmp(cmdString, SOFTCPU_CMD[SOFTCPU_SUB]))
-        {
-          assembler->code[pc++] = SOFTCPU_SUB;
-
-          if (!isStringEmpty(strings[i].buff + offset))
-            {
-              handleError("Unknown syntax in line [%d]", i + 1);
-
-              free(assembler->code);
-
-              return ASSEMBLER_UNKNOWN_SYNTAX;
-            }
-        }
-      else if (!stricmp(cmdString, SOFTCPU_CMD[SOFTCPU_MUL]))
-        {
-          assembler->code[pc++] = SOFTCPU_MUL;
-
-          if (!isStringEmpty(strings[i].buff + offset))
-            {
-              handleError("Unknown syntax in line [%d]", i + 1);
-
-              free(assembler->code);
-
-              return ASSEMBLER_UNKNOWN_SYNTAX;
-            }
-        }
-      else if (!stricmp(cmdString, SOFTCPU_CMD[SOFTCPU_DIV]))
-        {
-          assembler->code[pc++] = SOFTCPU_DIV;
-
-          if (!isStringEmpty(strings[i].buff + offset))
-            {
-              handleError("Unknown syntax in line [%d]", i + 1);
-
-              free(assembler->code);
-
-              return ASSEMBLER_UNKNOWN_SYNTAX;
-            }
-        }
-      else if (!stricmp(cmdString, SOFTCPU_CMD[SOFTCPU_OUT]))
-        {
-          assembler->code[pc++] = SOFTCPU_OUT;
-
-          if (!isStringEmpty(strings[i].buff + offset))
-            {
-              handleError("Unknown syntax in line [%d]", i + 1);
-
-              free(assembler->code);
-
-              return ASSEMBLER_UNKNOWN_SYNTAX;
-            }
-        }
-      else if (!stricmp(cmdString, SOFTCPU_CMD[SOFTCPU_HLT]))
-        {
-          assembler->code[pc++] = SOFTCPU_HLT;
-
-          if (!isStringEmpty(strings[i].buff + offset))
-            {
-              handleError("Unknown syntax in line [%d]", i + 1);
-
-              free(assembler->code);
-
-              return ASSEMBLER_UNKNOWN_SYNTAX;
-            }
-        }
-      else if (!stricmp(cmdString, SOFTCPU_CMD[SOFTCPU_DUMP]))
-        {
-          assembler->code[pc++] = SOFTCPU_DUMP;
-
-          if (!isStringEmpty(strings[i].buff + offset))
-            {
-              handleError("Unknown syntax in line [%d]", i + 1);
-
-              free(assembler->code);
-
-              return ASSEMBLER_UNKNOWN_SYNTAX;
-            }
-        }
-      else if (!stricmp(cmdString, SOFTCPU_CMD[SOFTCPU_IN]))
-        {
-          assembler->code[pc++] = SOFTCPU_IN;
-
-          if (!isStringEmpty(strings[i].buff + offset))
-            {
-              handleError("Unknown syntax in line [%d]", i + 1);
-
-              free(assembler->code);
-
-              return ASSEMBLER_UNKNOWN_SYNTAX;
-            }
-        }
-      else if (!stricmp(cmdString, SOFTCPU_CMD[SOFTCPU_COPY]))
-        {
-          assembler->code[pc++] = SOFTCPU_COPY;
-
-          if (!isStringEmpty(strings[i].buff + offset))
-            {
-              handleError("Unknown syntax in line [%d]", i + 1);
-
-              free(assembler->code);
-
-              return ASSEMBLER_UNKNOWN_SYNTAX;
-            }
-        }
-      else if (!stricmp(cmdString, SOFTCPU_CMD[SOFTCPU_SWAP]))
-        {
-          assembler->code[pc++] = SOFTCPU_SWAP;
-
-          if (!isStringEmpty(strings[i].buff + offset))
-            {
-              handleError("Unknown syntax in line [%d]", i + 1);
-
-              free(assembler->code);
-
-              return ASSEMBLER_UNKNOWN_SYNTAX;
-            }
-        }
-      else
         {
           char *hasColon = nullptr;
           if ((hasColon = strchr(strings[i].buff, ':')) != nullptr)
@@ -267,8 +120,6 @@ int compile(Assembler *assembler, String *strings, size_t stringsCount, FILE *ta
               if (!isStringEmpty(hasColon + 1))
                 {
                   handleError("Unknown syntax in line [%d]", i + 1);
-
-                  free(assembler->code);
 
                   return ASSEMBLER_UNKNOWN_SYNTAX;
                 }
@@ -291,12 +142,13 @@ int compile(Assembler *assembler, String *strings, size_t stringsCount, FILE *ta
 
               return ASSEMBLER_UNKNOWN_SYNTAX;
             }
+
+          continue;
         }
-      //printf("end  : ");
-      //print(assembler);
-      //printf("end  : %zu\n", pc);
+
+        if (listingFile)
+          putc('\n', listingFile);
     }
-  //printf("\n\n");
 
   if (assembler->compilationTime == 1 && pc != assembler->codeCapacity)
     {
@@ -307,8 +159,6 @@ int compile(Assembler *assembler, String *strings, size_t stringsCount, FILE *ta
       if (!temp)
         {
           handleError("Out of memory");
-
-          free(assembler->code);
 
           return ASSEMBLER_OUT_OF_MEMORY;
         }
@@ -336,7 +186,18 @@ Title generateTitle(const Assembler *assembler)
   return title;
 }
 
-static int parseArgs(Assembler *assembler, char *string, size_t *pc)
+void writeCode(const Assembler *assembler, FILE *targetFile)
+{
+  assert(assembler);
+  assert(targetFile);
+
+  Title title = generateTitle(assembler);
+
+  fwrite(&title, sizeof(title), 1 , targetFile);
+  fwrite(assembler->code  , sizeof(char) , assembler->codeCapacity, targetFile);
+}
+
+static int parseArgs(Assembler *assembler, char *string, size_t *pc, FILE *listingFile)
 {
   assert(assembler);
   assert(string);
@@ -390,11 +251,23 @@ static int parseArgs(Assembler *assembler, char *string, size_t *pc)
       if (findLabel(assembler, startLabel, &labelAddress))
         *(int *)(assembler->code + *pc) = labelAddress;
       else
-        *(int *)(assembler->code + *pc) = -1;
+        {
+          if (assembler->compilationTime == 1)
+            *(int *)(assembler->code + *pc) = -1;
+          else
+            {
+              handleError("No such label [%s]", startLabel);
+
+              return ASSEMBLER_INCORRECT_LABEL;
+            }
+        }
 
       *pc += sizeof(int);
 
       *endLabel = temp;
+
+      if (listingFile)
+        fprintf(listingFile, "%06X", (unsigned)labelAddress);
 
       return 0;
     }
@@ -429,9 +302,17 @@ static int parseArgs(Assembler *assembler, char *string, size_t *pc)
           *(int *)(assembler->code + *pc) = reg;
 
           *pc += sizeof(int);
+
+          if (listingFile)
+            fprintf(listingFile, "%08X", (unsigned)reg);
         }
       else
-        assembler->code[(*pc)++] = (char)reg;
+        {
+          assembler->code[(*pc)++] = (char)reg;
+
+          if (listingFile)
+            fprintf(listingFile, "%02X", (unsigned)reg);
+        }
     }
   else if (args == 1)
     {
@@ -439,6 +320,9 @@ static int parseArgs(Assembler *assembler, char *string, size_t *pc)
 
       *(int *)(assembler->code + *pc) = num;
       *pc += sizeof(int);
+
+      if (listingFile)
+        fprintf(listingFile, "%08X", (unsigned)num);
     }
   else if (args == 2)
     {
@@ -453,6 +337,9 @@ static int parseArgs(Assembler *assembler, char *string, size_t *pc)
       *pc += sizeof(int);
 
       assembler->code[(*pc)++] = (char)reg;
+
+      if (listingFile)
+        fprintf(listingFile, "%08X %02X", (unsigned)num, (unsigned)reg);
     }
   else
     return ASSEMBLER_INCORRECT_ARGUMENTS;

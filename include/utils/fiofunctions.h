@@ -23,12 +23,6 @@ size_t readFile(char **buffer, const char *filename);
 /// @param [in] size Count of element in file
 /// @param [in] filePtr File for read
 /// @return Count of read elements
-int readBin(void *buffer, size_t elementSize, size_t size, FILE *filePtr);
-
-void writeBinFile(const void *buffer, size_t bufferSize, FILE *outputFile);
-
-void writeTxtFile(const char *buffer, FILE *outputFile);
-
-void writeExecutableFile(const char *, int fileMode, FILE *outputFile);
+size_t readBin(void *buffer, size_t elementSize, size_t size, FILE *filePtr);
 
 #endif

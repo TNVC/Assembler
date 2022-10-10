@@ -2,42 +2,43 @@
 #include <string.h>
 #include <ctype.h>
 #include "stringsutils.h"
-#include "systemlike.h"
 #include "asserts.h"
 
 static size_t splitBuff(char *buffer, size_t size);
 
-char **parseToLines(char *buffer, size_t bufferSize, size_t *lineCount)
+String *parseToLines(char *buffer, size_t bufferSize, size_t *lineCount)
 {
-  if (!isPointerCorrect(buffer) || !bufferSize || !isPointerCorrect(lineCount))
-    return nullptr;
+  assert(buffer);
+  assert(lineCount);
 
   *lineCount = splitBuff(buffer, bufferSize);
 
-  if (*lineCount == (size_t)STRINGSUTILS_INCORRECT_ARGUMENTS)
-    return nullptr;
+  String *strings = (String *)calloc(*lineCount, sizeof(String));
 
-  char **strings = (char **)calloc(*lineCount, sizeof(char *));
-
-  if (!isPointerCorrect(strings))
+  if (!strings)
     return nullptr;
 
   size_t currentLine = 0, lineSize = 0;
 
-  for (size_t i = 0; currentLine < *lineCount; )
+  for (size_t i = 0; currentLine < *lineCount; ++i)
     {
-      strings[currentLine] = buffer + i;
+      strings[currentLine].buff = buffer + i;
 
-      while (buffer[i])
+      for ( ; buffer[i]; ++i, ++lineSize)
         {
           if (buffer[i] == ';')
-            buffer[i] = '\0';
-            
-          ++lineSize;
-          ++i;
+            {
+              buffer[i] = '\0';
+
+              while(buffer[++i])
+                continue;
+
+              --i;
+              --lineSize;
+            }
         }
 
-      ++currentLine;
+      strings[currentLine++].size = lineSize;
 
       lineSize = 0;
     }
@@ -47,10 +48,7 @@ char **parseToLines(char *buffer, size_t bufferSize, size_t *lineCount)
 
 static size_t splitBuff(char *buffer, size_t size)
 {
-  if (!isPointerCorrect(buffer) || !size)
-    {
-      return (size_t)STRINGSUTILS_INCORRECT_ARGUMENTS;
-    }
+  assert(buffer);
 
     size_t lines = 0;
 
@@ -73,8 +71,8 @@ static size_t splitBuff(char *buffer, size_t size)
 
 int stricmp(const char *first, const char *second)
 {
-  assert(isPointerReadCorrect(first));
-  assert(isPointerReadCorrect(second));
+  assert(first);
+  assert(second);
 
   int i = 0;
 
@@ -83,4 +81,32 @@ int stricmp(const char *first, const char *second)
       return tolower(first[i]) - tolower(second[i]);
 
   return tolower(first[i]) - tolower(second[i]);
+}
+
+int isStringEmpty(const char *string)
+{
+  for ( ; *string; ++string)
+    if (!isspace(*string))
+      return 0;
+
+  return 1;
+}
+
+int strcmpto(const char *first, const char *second, char determinant)
+{
+  assert(first);
+  assert(second);
+
+  int i = 0;
+
+  for ( ; first[i]                && second[i] &&
+          first[i] != determinant && second[i] != determinant; ++i)
+    if (first[i] != second[i])
+      return first[i] - second[i];
+
+  if ((first[i]  == '\0' || first[i]  == determinant) &&
+      (second[i] == '\0' || second[i] == determinant))
+    return 0;
+
+  return first[i] - second[i];
 }

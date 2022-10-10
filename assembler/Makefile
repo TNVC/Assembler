@@ -1,6 +1,6 @@
 CC   := g++
 NAME := assembler
-ARGS := -in code.asm -out a.bin
+ARGS := -in code.asm -out a.bin -temp a.temp
 
 LOGFILE := compileLog
 
@@ -27,6 +27,9 @@ $(NAME):  dependences objects $(OBJECTS) cleanDependences
 clean:
 	@rm -rf $(OBJECTS) $(DEPENDENCES) $(DEPDIR) $(NAME)
 
+check: clean $(NAME)
+	@$(if $(NAME), valgrind --leak-check=yes ./$(NAME) $(ARGS))
+
 run: clean $(NAME)
 	@$(if $(NAME), ./$(NAME) $(ARGS))
 
@@ -45,6 +48,6 @@ objects:
 	@$(if $(OBJDIR), mkdir -p $(OBJDIR))
 
 $(if $(OBJDIR), $(OBJDIR)/%.o, %.o): %.cpp
-	@$(CC) -c $(addprefix -I, $(INCDIR)) $(CFLAGS) $(SANITIZERS) $< -o $@ #2>>$(LOGFILE)
+	@$(CC) -c $(addprefix -I, $(INCDIR)) -save-temps $(CFLAGS) $(SANITIZERS) $< -o $@ #2>>$(LOGFILE)
 
 include $(wildcard $(DEPDIR)/*.d)

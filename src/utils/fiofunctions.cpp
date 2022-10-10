@@ -1,8 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
-
 #include "fiofunctions.h"
 #include "systemlike.h"
+#include "asserts.h"
 
 size_t readFile(char **buffer, const char *filename)
 {
@@ -40,10 +40,10 @@ size_t readFile(char **buffer, const char *filename)
   return size;
 }
 
-int readBin(void *buffer, size_t elementSize, size_t size, FILE *filePtr)
+size_t readBin(void *buffer, size_t elementSize, size_t size, FILE *filePtr)
 {
-  if (!isPointerCorrect(buffer))
-      return FIOFUNCTIONS_INCORRECT_ARGUMENTS;
-      
+  assert(buffer);
+  assert(filePtr);
+
   return fread(buffer, elementSize, size, filePtr);
 }

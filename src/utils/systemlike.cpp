@@ -41,7 +41,7 @@ int isPointerReadCorrect(const void *pointer)
   if (!pointer)
     return 0;
 
-  return 1;//write(TEMP_FILE_DESCRIPTOR, pointer, 1) != -1;
+  return 1;//write(TEMP_FILE_DESCRIPTOR, pointer, 0) != -1;
 }
 
 int isPointerCorrect(const void *pointer)

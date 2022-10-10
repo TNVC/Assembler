@@ -29,17 +29,23 @@ struct Assembler {
   size_t compilationTime;
 };
 
-/// Compile code to executable file
+/// Compile code
 /// @param [in/out] assembler Assembler object for repeat compile
 /// @param [in] strings Each lines from source file geted from parseToLine()
 /// @param [in] stringsCount Size of strings
-/// @param [in] targetFile File for output
+/// @param [in] listingFile File for write compile listing
 /// @return Error`s code
-int compile(Assembler *assembler, String *strings, size_t stringsCount, FILE *targetFile);
+int compile(Assembler *assembler, String *strings, size_t stringsCount, FILE *listingFile = nullptr);
 
 /// Generete execute file title
 /// @param [in] assembler Assembler object with info for generator
 /// @return Title object
 Title generateTitle(const Assembler *assembler);
+
+/// Write code from assembler to targetFile
+/// @param [in] assembler Assembler object with code cell
+/// @param [in] tagertFile File for write
+/// @note targetFile have to open in bin mode
+void writeCode(const Assembler *assembler, FILE *targetFile);
 
 #endif

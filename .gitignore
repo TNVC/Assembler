@@ -1,7 +1,15 @@
 *.out
 *.exe
 *.o
+*.ii
+*.s
 *.txt
+*.asm
+*.temp
+*.bin
 compileLog
 .log/
 a
+assembler
+disassembler
+softcpu

@@ -4,12 +4,6 @@
 /// Name of target file if didn`t input anything
 const char * const DEFAULT_TARGET_FILE_NAME = "a.bin";
 
-enum OutputFileType {
-  NOT_INIT_TARGET_FILE = -1, /// <- Initilizate value
-  BIN_TARGET_FILE      =  0, /// <- For binary output file
-  TXT_TARGET_FILE      =  1, /// <- For text output file
-};
-
 /// Getter for SOURCE_FILE_NAME
 /// @return Current value of SOURCE_FILE_NAME
 char *getSourceFileName();
@@ -26,13 +20,14 @@ char *getTargetFileName();
 /// @param [in] fileName New value for field
 void setTargetFileName(char *fileName);
 
-/// Getter for TARGET_FILE_MODE
-/// @return Current value of TARGET_FILE_MODE
-int getTargetFileMode();
+/// Getter for LISTING_FILE_NAME
+/// @return Current value of LISTING_FILE_NAME
+char *getListingFileName();
 
-/// Setter for TARGET_FILE_MODE
+/// Setter for LISTING_FILE_NAME
 /// @param [in] fileName New value for field
-void setTargetFileMode(int mode);
+void setListingFileName(char *fileName);
+
 
 /// Getter for PROGRAMM_NAME
 /// @return Current value of PROGRAMM_NAME

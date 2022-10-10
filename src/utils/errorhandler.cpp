@@ -1,33 +1,31 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include "settings.h"
-#include "coloroutput.h"
-#include "errorhandler.h"
-#include "systemlike.h"
 #include <stdarg.h>
+#include "errorhandler.h"
+#include "coloroutput.h"
+#include "settings.h"
 
-[[noreturn]] void handleError(const char *message, ...)
+/// Handle message
+/// @brief Show message with prefix in console with color from name of the programm
+///        After message reset color
+///        Template: [set test color to color]progran-name: prefix: message\\n[set color to default]
+///
+/// @param [in] message Format C-like string with message
+/// @param [in] args VA_ARGS for format string
+/// @param [in] color Color of message
+/// @param [in] prefix Prefix will print before message
+/// @note If message is nullptr set it to "MESSAGE CORRUPTED!!"
+static void handleMessage(const char *message, va_list args, int color, const char *prefix);
+
+void handleError(const char *message, ...)
 {
   va_list args = {};
 
   va_start(args, message);
 
-  if (!isPointerReadCorrect(message))
-    message = "MESSAGE CORRUPTED!!";
-
-  setForegroundColor(CONSOLECOLOR_RED);
-
-  printf("%s: Error: ", PROGRAMM_NAME);
-
-  vprintf(message, args);
-
-  putchar('\n');
-
-  resetConsole();
+  handleMessage(message, args, CONSOLECOLOR_RED, "Error");
 
   va_end(args);
-
-  exit(0);
 }
 
 void handleWarning(const char *message, ...)
@@ -36,18 +34,25 @@ void handleWarning(const char *message, ...)
 
   va_start(args, message);
 
-  if (!isPointerReadCorrect(message))
+  handleMessage(message, args, CONSOLECOLOR_YELLOW, "Warning");
+
+  va_end(args);
+}
+
+static void handleMessage(const char *message, va_list args, int color, const char *prefix)
+{
+  if (!message)
     message = "MESSAGE CORRUPTED!!";
 
-  setForegroundColor(CONSOLECOLOR_YELLOW);
+  setForegroundColor(color);
 
-  printf("%s: Warning: ", PROGRAMM_NAME);
+  printf("%s: ", getProgrammName());
+
+  printf("%s: ", prefix);
 
   vprintf(message, args);
 
   putchar('\n');
 
   resetConsole();
-
-  va_end(args);
 }

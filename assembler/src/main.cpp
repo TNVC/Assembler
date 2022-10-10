@@ -60,7 +60,6 @@ int main(const int argc, const char * const argv[])
 
   strings.sequence = parseToLines(strings.originBuffer, strings.size, &strings.stringsCount);
 
-
   if (!strings.sequence)
     {
       handleError("Out of memory");
@@ -80,31 +79,42 @@ int main(const int argc, const char * const argv[])
       return 0;
     }
 
-  FILE *targetFile = fopen(getTargetFileName(),
-                           (getTargetFileMode() == BIN_TARGET_FILE) ? "wb" : "w");
+  FILE *targetFile = fopen(getTargetFileName(), "wb");
 
   if (!targetFile)
     {
-      handleError("Cannot open file [%d]", getTargetFileName());
+      handleError("Cannot open file [%s]", getTargetFileName());
 
       destroyStrings(&strings);
 
       return 0;
     }
 
+  FILE *listingFile = nullptr;
+
+  if (getListingFileName())
+    {
+      listingFile = fopen(getListingFileName(), "w");
+
+      if (!listingFile)
+        {
+          handleError("Cannot open file [%s]", getListingFileName());
+
+          destroyStrings(&strings);
+
+          return 0;
+        }
+    }
+
   Assembler assembler = {};
 
-  if (compile(&assembler, strings.sequence, strings.stringsCount, targetFile))
-    return 0;
-
-  compile(&assembler, strings.sequence, strings.stringsCount, targetFile);
-
-  Title title = generateTitle(&assembler);
-
-  fwrite(&title, sizeof(title), 1 , targetFile);
-  fwrite(assembler.code  , sizeof(char) , assembler.codeCapacity, targetFile);
+    if (!compile(&assembler, strings.sequence, strings.stringsCount))
+      if (!compile(&assembler, strings.sequence, strings.stringsCount, listingFile))
+       writeCode(&assembler, targetFile);
 
   fclose(targetFile);
+
+  free(assembler.code);
 
   destroyStrings(&strings);
 

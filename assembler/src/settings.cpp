@@ -6,7 +6,7 @@ static char *SOURCE_FILE_NAME    = nullptr;
 
 static char *TARGET_FILE_NAME    = nullptr;
 
-static int TARGET_FILE_MODE = NOT_INIT_TARGET_FILE;
+static char *LISTING_FILE_NAME   = nullptr;
 
 static const char *PROGRAMM_NAME = "nullptr";
 
@@ -30,14 +30,14 @@ void setTargetFileName(char *fileName)
   TARGET_FILE_NAME = fileName;
 }
 
-int getTargetFileMode()
+char *getListingFileName()
 {
-  return TARGET_FILE_MODE;
+  return LISTING_FILE_NAME;
 }
 
-void setTargetFileMode(int mode)
+void setListingFileName(char *fileName)
 {
-  TARGET_FILE_MODE = mode;
+  LISTING_FILE_NAME = fileName;
 }
 
 const char *getProgrammName()

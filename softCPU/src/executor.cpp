@@ -1,11 +1,13 @@
 #include <stdio.h>
 #include <string.h>
+#include <math.h>
 #include <time.h>
 #include "executor.h"
 #include "fiofunctions.h"
 #include "systemlike.h"
 #include "softcpucmd.h"
 #include "stack.h"
+#include "logging.h"
 #include "errorhandler.h"
 #include "asserts.h"
 
@@ -16,7 +18,8 @@ static int *parseArg(SoftCPU *cpu);
 
 /// Dump CPU
 /// @param [in] cpu SoftCPU object for dump
-static void dumpCPU(SoftCPU *cpu);
+/// @param [in] file File for dump
+static void dumpCPU(SoftCPU *cpu, FILE *file);
 
 /// Return address of RAM cell with index in cpu
 /// @param [in] cpu SoftCPU object with RAM
@@ -56,248 +59,16 @@ int execute(SoftCPU *cpu)
 
       switch (cmd.code)
         {
-        case SOFTCPU_HLT:
-          {
-            return 0;
-          }
-        case SOFTCPU_PUSH:
-          {
-            int *cell = parseArg(cpu);
 
-            if (cell)
-              {
-                stack_push(&cpu->stack, *cell);
-              }
-            else
-              {
-                handleError("PUSH hasn`t argument!!");
+#define DEF_CMD(name, num, hasArg, ...)         \
+          case num:                             \
+            __VA_ARGS__                         \
+              break;
 
-                return SOFTCPU_EMPTY_STACK;
-              }
+#include "cmd.h"
 
-            break;
-          }
-        case SOFTCPU_ADD:
-          {
-            if (stack_size(&cpu->stack) >= 2)
-              stack_push(&cpu->stack, stack_pop(&cpu->stack) + stack_pop(&cpu->stack));
-            else
-              {
-                handleError("Too little elements in stack for ADD!!");
+#undef DEF_CMD
 
-                return SOFTCPU_EMPTY_STACK;
-              }
-
-            break;
-          }
-        case SOFTCPU_SUB:
-          {
-            if (stack_size(&cpu->stack) >= 2)
-              stack_push(&cpu->stack, stack_pop(&cpu->stack) - stack_pop(&cpu->stack));
-            else
-              {
-                handleError("Too little elements in stack for SUB!!");
-
-                return SOFTCPU_EMPTY_STACK;
-              }
-
-            break;
-          }
-        case SOFTCPU_MUL:
-          {
-            if (stack_size(&cpu->stack) >= 2)
-              stack_push(&cpu->stack, stack_pop(&cpu->stack) * stack_pop(&cpu->stack));
-            else
-              {
-                handleError("Too little elements in stack for MUL!!");
-
-                return SOFTCPU_EMPTY_STACK;
-              }
-
-            break;
-          }
-        case SOFTCPU_DIV:
-          {
-            if (stack_size(&cpu->stack) >= 2)
-              {
-                int firstVal  = stack_pop(&cpu->stack);
-                int secondVal = stack_pop(&cpu->stack);
-
-                if (secondVal == 0)
-                  {
-                    handleError("DIV by zero!!");
-
-                    return SOFTCPU_DIV_BY_ZERO;
-                  }
-
-                stack_push(&cpu->stack, firstVal / secondVal);
-              }
-            else
-              {
-                handleError("Too little elements in stack for DIV!!");
-
-                return SOFTCPU_EMPTY_STACK;
-              }
-
-            break;
-          }
-        case SOFTCPU_OUT:
-          {
-            if (stack_size(&cpu->stack) >= 1)
-              {
-                printf("%d\n", stack_pop(&cpu->stack));
-              }
-            else
-              {
-                handleError("Too little elements in stack for OUT!!");
-
-                return SOFTCPU_EMPTY_STACK;
-              }
-
-            break;
-          }
-        case SOFTCPU_DUMP:
-          {
-            break;
-
-            dumpCPU(cpu);
-
-            getchar();
-
-            break;
-          }
-        case SOFTCPU_IN:
-          {
-            int val = 0;
-
-            if (scanf("%d", &val) != 1)
-              {
-                handleError("Incorrect input!!");
-
-                return SOFTCPU_NO_INPUT;
-              }
-
-            stack_push(&cpu->stack, val);
-
-            break;
-          }
-        case SOFTCPU_COPY:
-          {
-            if (stack_size(&cpu->stack) >= 1)
-              {
-                stack_push(&cpu->stack, stack_top(&cpu->stack));
-              }
-            else
-              {
-                handleError("Too little elements in stack for COPY!!");
-
-                return SOFTCPU_EMPTY_STACK;
-              }
-
-            break;
-          }
-        case SOFTCPU_SWAP:
-          {
-            if (stack_size(&cpu->stack) >= 2)
-              {
-                int firstVal  = stack_pop(&cpu->stack);
-                int secondVal = stack_pop(&cpu->stack);
-
-                stack_push(&cpu->stack,  firstVal);
-                stack_push(&cpu->stack, secondVal);
-              }
-            else
-              {
-                handleError("Too little elements in stack for SWAP!!");
-
-                return SOFTCPU_EMPTY_STACK;
-              }
-
-            break;
-          }
-        case SOFTCPU_POP:
-          {
-            if (stack_size(&cpu->stack) < 1)
-              {
-                handleError("Too little elements in stack for POP!!");
-
-                return SOFTCPU_EMPTY_STACK;
-              }
-
-            int *cell = parseArg(cpu);
-
-            if (cell)
-              {
-                *cell = stack_pop(&cpu->stack);
-              }
-            else
-              {
-                handleError("PUSH hasn`t argument!!");
-
-                return SOFTCPU_EMPTY_STACK;
-              }
-
-            break;
-          }
-        case SOFTCPU_JMP:
-          {
-            int *cell = parseArg(cpu);
-
-            if (cell)
-              {
-                if (*cell < 0 || *cell >= cpu->codeCapacity)
-                  {
-                    handleError("Incorrect JMP argument!!");
-
-                    return SOFTCPU_INCORRECT_JUMP;
-                  }
-
-                cpu->pc = (size_t)*cell - 1;
-              }
-            else
-              {
-                handleError("PUSH hasn`t argument!!");
-
-                return SOFTCPU_EMPTY_STACK;
-              }
-
-            break;
-          }
-        case SOFTCPU_JB:
-          {
-            int *cell = parseArg(cpu);
-
-            if (cell)
-              {
-                if (*cell < 0 || *cell >= cpu->codeCapacity)
-                  {
-                    handleError("Incorrect JMP argument!!");
-
-                    return SOFTCPU_INCORRECT_JUMP;
-                  }
-
-                if (stack_size(&cpu->stack) < 2)
-                  {
-                    handleError("Too little argument for JB!!");
-
-                    return SOFTCPU_EMPTY_STACK;
-                  }
-
-                int first  = stack_pop(&cpu->stack);
-                int second = stack_pop(&cpu->stack);
-
-                if (first < second)
-                  cpu->pc = (size_t)*cell - 1;
-              }
-            else
-              {
-                handleError("PUSH hasn`t argument!!");
-
-                return SOFTCPU_EMPTY_STACK;
-              }
-
-            break;
-          }
         default:
           {
             handleError("Unknown cmd [%d]!!", cmd.code);
@@ -310,33 +81,33 @@ int execute(SoftCPU *cpu)
   return 0;
 }
 
-static void dumpCPU(SoftCPU *cpu)
+static void dumpCPU(SoftCPU *cpu, FILE *file)
 {
-  printf("%*s ", 8, "");
+  fprintf(file, "%*s ", 8, "");
 
   for (unsigned i = 0; i < 16; ++i)
-    printf("%0*X ", 2, i);
+    fprintf(file, "%0*X ", 2, i);
 
   for (unsigned i = 0; i < cpu->codeCapacity; ++i)
     {
       if (i % 16 == 0)
-        printf("\n%08X ", i);
+        fprintf(file, "\n%08X ", i);
 
       if (i == cpu->pc)
-        printf("\b[%0*X]", 2, (char)cpu->code[i]);
+        fprintf(file, "\b[%0*X]", 2, (unsigned)cpu->code[i]);
       else
-        printf("%0*X "   , 2, (char)cpu->code[i]);
+        fprintf(file, "%0*X "   , 2, (unsigned)cpu->code[i]);
     }
 
-  putchar('\n');
-  putchar('\n');
+  putc('\n', file);
+  putc('\n', file);
 
   for (unsigned i = 0; i < REGISTERS_COUNT; ++i)
-    printf("Reg#%d: %d ", i, cpu->registers[i]);
+    fprintf(file, "Reg#%u: %d ", i, cpu->registers[i]);
 
-  putchar('\n');
+  putc('\n', file);
 
-  stack_dump(&cpu->stack, stack_valid(&cpu->stack), stdout);
+  stack_dump(&cpu->stack, stack_valid(&cpu->stack), file);
 }
 
 static int *parseArg(SoftCPU *cpu)

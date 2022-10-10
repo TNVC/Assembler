@@ -6,16 +6,14 @@
 #include "settings.h"
 #include "asserts.h"
 
-const int IN  = 0;
-const int OUT = 1;
-const int BIN = 2;
-const int TXT = 3;
+const int IN   = 0;
+const int OUT  = 1;
+const int TEMP = 2;
 
 const char *FLAGS[] = {
-  "-in" ,
-  "-out",
-  "-bin",
-  "-txt",
+  "-in"  ,
+  "-out" ,
+  "-temp",
 };
 
 /// Handle flag -in
@@ -27,11 +25,9 @@ static int handleIn (const char *argument);
 /// @param [in] argument Argument for -out
 static void handleOut(const char *argument);
 
-/// Handle flag -bin
-static void handleBin();
-
-/// Handle flag -txt
-static void handleTxt();
+/// Handle flag -temp
+/// @param [in] argument Argument for -temp
+static void handleTemp(const char *argument);
 
 /// Handle incorrect arguments for flags
 /// @param [in] flag Name of flag wicth geted incorrect argument
@@ -48,9 +44,9 @@ int parseConsoleArgs(const int argc, const char * const argv[])
   assert(argc > 0);
 
   setProgrammName(argv[0]);
-  setSourceFileName(nullptr);
-  setTargetFileName(nullptr);
-  setTargetFileMode(NOT_INIT_TARGET_FILE);
+  setSourceFileName (nullptr);
+  setTargetFileName (nullptr);
+  setListingFileName(nullptr);
 
   if (argc < 2)
     {
@@ -86,13 +82,16 @@ int parseConsoleArgs(const int argc, const char * const argv[])
               return INCORRECT_ARGUMENTS;
             }
         }
-      else if (!strcmp(argv[i], FLAGS[BIN]))
+      else if (!strcmp(argv[i], FLAGS[TEMP]))
         {
-          handleBin();
-        }
-      else if (!strcmp(argv[i], FLAGS[TXT]))
-        {
-          handleTxt();
+          if (++i < argc && argv[i][0] != '-')
+            handleTemp(argv[i]);
+          else
+            {
+              handleIncorrectArgument(argv[i - 1], i < argc ? argv[i] : "nothing");
+
+              return INCORRECT_ARGUMENTS;
+            }
         }
       else if (argv[i][0] == '-')
         {
@@ -113,11 +112,11 @@ int parseConsoleArgs(const int argc, const char * const argv[])
     }
 
   if (!getTargetFileName())
-    setTargetFileName(strdup(DEFAULT_TARGET_FILE_NAME));
+    {
+      setTargetFileName(strdup(DEFAULT_TARGET_FILE_NAME));
 
-
-  if (getTargetFileMode() == NOT_INIT_TARGET_FILE)
-    setTargetFileMode(BIN_TARGET_FILE);
+      addElementForFree(getTargetFileName());
+    }
 
   return 0;
 }
@@ -159,20 +158,18 @@ static void handleOut(const char *argument)
     }
 }
 
-static void handleBin()
+static void handleTemp(const char *argument)
 {
-  if (getTargetFileMode() != NOT_INIT_TARGET_FILE)
-    handleWarning("Too many flags for output file format");
-  else
-    setTargetFileMode(BIN_TARGET_FILE);
-}
+  if (!getListingFileName())
+    {
+      setListingFileName(strdup(argument));
 
-static void handleTxt()
-{
-  if (getTargetFileMode() != NOT_INIT_TARGET_FILE)
-    handleWarning("Too many flags for output file format");
+      addElementForFree(getListingFileName());
+    }
   else
-    setTargetFileMode(TXT_TARGET_FILE);
+    {
+      handleWarning("Too many listing files [%s]", argument);
+    }
 }
 
 static void handleIncorrectArgument(const char *flag, const char *argument)

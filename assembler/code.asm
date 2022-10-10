@@ -1,12 +1,18 @@
-push 1
-push [1]
- dany:
-push :1
-push rcx
- egor:
-push [rbx]
-push :dany
+PUSH 1
+POP rax
+  next:
+PUSH rax
+PUSH rax
+MUL
+OUT
 
+PUSH rax
+PUSH 1
+ADD
+POP rax
 
-1:
-hlt
+PUSH 10
+PUSH rax
+JB :next
+
+HLT
