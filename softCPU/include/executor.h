@@ -3,37 +3,38 @@
 
 #include "stack.h"
 
+/// Count of registers in softCpu
 #define REGISTERS_COUNT 4
-#define RAM_SIZE 1024
+/// Size of RAM in softCPU
+#define RAM_SIZE 128
 
+/// Singelton SoftCPU-object
 struct SoftCPU {
-  char *code;
-  size_t codeCapacity;
-  Stack stack;
-  int registers[REGISTERS_COUNT];
-  int RAM[RAM_SIZE];
-  size_t pc;
+  char *code;                     /// <- Array with executable code
+  size_t codeCapacity;            /// <- Size of code array
+  Stack stack;                    /// <- SoftCPU stack
+  int registers[REGISTERS_COUNT]; /// <- SoftCPU registers
+  int RAM[RAM_SIZE];              /// <- SoftCPU RAM
+  size_t pc;                      /// <- Program counter
 };
 
-enum TitleError {
-  INCORRECT_TITLE   = 0x01 << 0,
-  NO_TITLE          = 0x01 << 1,
-  DIFFERENT_VERSION = 0x01 << 2,
-};
-
+/// Errors witch may be return from execute()
 enum SoftCPUError {
-  SOFTCPU_EMPTY_STACK         = 0x01 << 0,
-  SOFTCPU_DIV_BY_ZERO         = 0x01 << 1,
-  SOFTCPU_NO_INPUT            = 0x01 << 2,
-  SOFTCPU_INCORRECT_ARGUMENTS = 0x01 << 3,
-  SOFTCPU_INCORRECT_JUMP      = 0x01 << 4,
-  SOFTCPU_UNKNOWN_CMD         = 0x01 << 5,
+  SOFTCPU_EMPTY_STACK         = 0x01 << 0, /// <- Size of stack less than need for cmd
+  SOFTCPU_DIV_BY_ZERO         = 0x01 << 1, /// <- Divided by zero
+  SOFTCPU_NO_INPUT            = 0x01 << 2, /// <- No input in programm
+  SOFTCPU_INCORRECT_ARGUMENTS = 0x01 << 3, /// <- Invalid type of argument
+  SOFTCPU_INCORRECT_JUMP      = 0x01 << 4, /// <- Invalid jump argument (<0 || >=codeCapacity)
+  SOFTCPU_UNKNOWN_CMD         = 0x01 << 5, /// <- Invalid cmd code
 };
 
-/// Check the title in file
-/// @param [in] filePtr Executable file with title
-/// @return Size of code from title or error`s code
-int checkTitle(FILE *filePtr);
+/// Init cpu  to use
+/// @param [in/out] cpu SoftCPU object for initilization
+void initAssembler(SoftCPU *cpu);
+
+/// Destroy cpu after using
+/// @param [in] cpu SoftCPU object for destroy
+void destroyAssembler(SoftCPU *cpu);
 
 /// Execute cmds
 /// @param [in] cpu SoftCPU object with executable code cell

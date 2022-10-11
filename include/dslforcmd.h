@@ -9,11 +9,11 @@
 #define SIZE stack_size(&cpu->stack)
 #define ARG  parseArg(cpu)
 //#define REG(name)
-#define SET_PC(arg) cpu->pc = (size_t)*arg - 1
+#define SET_PC(arg) cpu->pc = (size_t)arg - 1
 #define CHECK_ADR(address)                                        \
   do                                                              \
     {                                                             \
-      if (*address < 0 || (size_t)*address >= cpu->codeCapacity)  \
+      if (address < 0 || (size_t)address >= cpu->codeCapacity)    \
         return SOFTCPU_INCORRECT_JUMP;                            \
     } while (0)
 #define NO_ARG                                  \
@@ -23,12 +23,12 @@
                                                 \
     return SOFTCPU_EMPTY_STACK;                 \
   } while(0)
-#define NO_SIZE                                       \
-  do                                                  \
-    {                                                 \
-      handleError("Too little elements in stack!!");  \
-                                                      \
-      return SOFTCPU_EMPTY_STACK;                     \
+#define NO_SIZE                                                         \
+  do                                                                    \
+    {                                                                   \
+      handleError("Too little elements in stack [%06X]!!", cpu->pc);    \
+                                                                        \
+      return SOFTCPU_EMPTY_STACK;                                       \
     } while (0)
 #define DEF_JMP(name, num, operator)            \
   DEF_CMD(name, num, 1, {                       \
@@ -39,10 +39,10 @@
                                                 \
       if (arg)                                  \
         {                                       \
-          CHECK_ADR(arg);                       \
+          CHECK_ADR(*arg);                      \
                                                 \
           if (POP operator POP)                 \
-            SET_PC(arg);                        \
+            SET_PC(*arg);                       \
         }                                       \
       else                                      \
         NO_ARG;                                 \

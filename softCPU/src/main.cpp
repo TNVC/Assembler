@@ -3,6 +3,7 @@
 #include "settings.h"
 #include "consoleargsutils.h"
 #include "fiofunctions.h"
+#include "title.h"
 #include "garbagecollector.h"
 #include "executor.h"
 #include "systemlike.h"

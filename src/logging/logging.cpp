@@ -171,8 +171,6 @@ FILE *getLogFile()
 
 char *getNewLogFileName()
 {
-  return strdup(".log/defaultLogFile.txt");
-    
   time_t now = 0;
   time(&now);
   char *dataString = ctime(&now);

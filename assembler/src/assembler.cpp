@@ -6,7 +6,7 @@
 #include "systemlike.h"
 #include "errorhandler.h"
 #include "stringsutils.h"
-#include "settings.h"
+#include "title.h"
 #include "asserts.h"
 
 /// Parse arguments in C-like string and write to code
@@ -15,24 +15,74 @@
 /// @param [in] pc Pointer to pc
 /// @param [in] listingFile File for write listing
 /// @return 1 if was syntax error or 0 if was not
-static int parseArgs(Assembler *assembler, char *string, size_t *pc, FILE *listingFile);
+static int parseArgs(
+                     Assembler *assembler,
+                     char *string,
+                     size_t *pc,
+                     FILE *listingFile
+                     );
 
 /// Return register number with name
 /// @param [in] name Name supposed a register name
 /// @return Register number or -1 if it isn`t a register name
 static int getRegNumber(const char *name);
 
+/// Parse label in string and find it in assembler
+/// @param [in] assembler Assembler-object with labels cell
+/// @param [in] string C-like string with label for parse
+/// @param [in] pc Pointer to programm counter
+/// @param [out] offset Length of label in string
+/// @param [in] listingFile File for write listing
+/// @return Error`s code
+static int parseLabel(
+                      Assembler *assembler,
+                      char *string,
+                      size_t *pc,
+                      int *offset,
+                      FILE *listingFile
+                      );
+
 /// Find label in assembler cells
 /// @param [in] assembler Assembler object with label cell
 /// @param [in] name Name of label which need to find
 /// @param [out] address Pointer to variable where need write answer
 /// @return 1 if assembler cells contain label with 'name' or 0 if don`t
-static int findLabel(const Assembler *assembler, const char *name, int *address);
+static int findLabel(
+                     const Assembler *assembler,
+                     const char *name,
+                     int *address
+                     );
 
-int compile(Assembler *assembler, String *strings, size_t stringsCount, FILE *listingFile)
+void initAssembler(Assembler *assembler)
+{
+  assert(assembler);
+
+  assembler->code            = nullptr;
+  assembler->codeCapacity    = 0;
+  assembler->lastLabel       = 0;
+  assembler->compilationTime = 0;
+}
+
+void destroyAssembler(Assembler *assembler)
+{
+  assert(assembler);
+
+  free(assembler->code);
+  assembler->codeCapacity    = 0;
+  assembler->lastLabel       = 0;
+  assembler->compilationTime = 0;
+}
+
+int compile(
+            Assembler *assembler,
+            String *strings,
+            size_t stringsCount,
+            FILE *listingFile
+            )
 {
   assert(assembler);
   assert(strings);
+  assert(stringsCount > 0);
 
   ++assembler->compilationTime;
 
@@ -75,7 +125,7 @@ int compile(Assembler *assembler, String *strings, size_t stringsCount, FILE *li
 
       char cmdString[MAX_WORD_LENGTH + 1] = "";
 
-      if (sscanf(strings[i].buff, "%4s%n", cmdString, &offset) != 1)
+      if (sscanf(strings[i].buff, "%8s%n", cmdString, &offset) != 1)
         continue;
 
 
@@ -86,7 +136,7 @@ int compile(Assembler *assembler, String *strings, size_t stringsCount, FILE *li
                                                                         \
       if (listingFile)                                                  \
         {                                                               \
-          fprintf(listingFile, "%06lX ", pc);                           \
+          fprintf(listingFile, "%06lX ", pc - 1);                       \
                                                                         \
           fprintf(listingFile, "%02X ", (unsigned)num);                 \
         }                                                               \
@@ -134,13 +184,26 @@ int compile(Assembler *assembler, String *strings, size_t stringsCount, FILE *li
 
               label.name = strings[i].buff + labelStart;
 
-              assembler->labels[assembler->lastLabel++] = label;
+              int temp = 0;
+
+              if (assembler->compilationTime == 1)
+                {
+                  if (!findLabel(assembler, label.name, &temp))
+                    assembler->labels[assembler->lastLabel++] = label;
+                  else
+                    {
+                      handleError("The label in line [%d] is already declared!!", i + 1);
+
+                      return ASSEMBLER_INCORRECT_LABEL;
+                    }
+                }
+
             }
           else
             {
               handleError("Unknown cmd[%s] in line %d!!", cmdString, i + 1);
 
-              return ASSEMBLER_UNKNOWN_SYNTAX;
+              return ASSEMBLER_UNKNOWN_CMD;
             }
 
           continue;
@@ -150,15 +213,16 @@ int compile(Assembler *assembler, String *strings, size_t stringsCount, FILE *li
           putc('\n', listingFile);
     }
 
-  if (assembler->compilationTime == 1 && pc != assembler->codeCapacity)
+  if (assembler->compilationTime == 1 && pc && pc != assembler->codeCapacity)
     {
+      //      printf("%p %zu % zu", assembler->code, pc, sizeof(char));
       char *temp = (char *)recalloc(assembler->code, pc, sizeof(char));
 
       assembler->codeCapacity = pc;
 
       if (!temp)
         {
-          handleError("Out of memory");
+          handleError("Out of memory !");
 
           return ASSEMBLER_OUT_OF_MEMORY;
         }
@@ -169,35 +233,23 @@ int compile(Assembler *assembler, String *strings, size_t stringsCount, FILE *li
   return 0;
 }
 
-Title generateTitle(const Assembler *assembler)
-{
-  assert(assembler);
-
-  Title title = {};
-
-  title.securityCode[0] = SECURITY_CODE[0];
-  title.securityCode[1] = SECURITY_CODE[1];
-  title.securityCode[2] = SECURITY_CODE[2];
-
-  title.version = SOFTCPU_CMD_VERSION;
-
-  title.cmdCount = (int)assembler->codeCapacity;
-
-  return title;
-}
-
 void writeCode(const Assembler *assembler, FILE *targetFile)
 {
   assert(assembler);
   assert(targetFile);
 
-  Title title = generateTitle(assembler);
+  Title title = generateTitle((int)assembler->codeCapacity);
 
   fwrite(&title, sizeof(title), 1 , targetFile);
   fwrite(assembler->code  , sizeof(char) , assembler->codeCapacity, targetFile);
 }
 
-static int parseArgs(Assembler *assembler, char *string, size_t *pc, FILE *listingFile)
+static int parseArgs(
+                     Assembler *assembler,
+                     char *string,
+                     size_t *pc,
+                     FILE *listingFile
+                     )
 {
   assert(assembler);
   assert(string);
@@ -227,47 +279,10 @@ static int parseArgs(Assembler *assembler, char *string, size_t *pc, FILE *listi
     {
       ++string;
 
-      char *startLabel = string;
-
-      while (!isspace(*string) && *string)
-        ++string;
-
-      char *endLabel = string;
-
-      if (startLabel == endLabel)
-        return ASSEMBLER_INCORRECT_LABEL;
-
-      if (!isStringEmpty(string))
-        return ASSEMBLER_INCORRECT_LABEL;
-
-      char temp = *endLabel;
-
-      *endLabel = '\0';
-
-      int labelAddress = 0;
-
       cmd->immed = 1;
 
-      if (findLabel(assembler, startLabel, &labelAddress))
-        *(int *)(assembler->code + *pc) = labelAddress;
-      else
-        {
-          if (assembler->compilationTime == 1)
-            *(int *)(assembler->code + *pc) = -1;
-          else
-            {
-              handleError("No such label [%s]", startLabel);
-
-              return ASSEMBLER_INCORRECT_LABEL;
-            }
-        }
-
-      *pc += sizeof(int);
-
-      *endLabel = temp;
-
-      if (listingFile)
-        fprintf(listingFile, "%06X", (unsigned)labelAddress);
+      if (parseLabel(assembler, string, pc, nullptr, listingFile))
+        return ASSEMBLER_INCORRECT_LABEL;
 
       return 0;
     }
@@ -290,28 +305,35 @@ static int parseArgs(Assembler *assembler, char *string, size_t *pc, FILE *listi
 
   if (args == 0 && sscanf(string, "%3s", regName))
     {
-      cmd->reg = 1;
-
-      offset = 3;
-
       if ((reg = getRegNumber(regName)) == -1)
-        return ASSEMBLER_INCORRECT_ARGUMENTS;
-
-      if (cmd->mem)
         {
-          *(int *)(assembler->code + *pc) = reg;
+          cmd->immed = 1;
 
-          *pc += sizeof(int);
-
-          if (listingFile)
-            fprintf(listingFile, "%08X", (unsigned)reg);
+          if (parseLabel(assembler, string, pc, &offset, listingFile))
+            return ASSEMBLER_INCORRECT_LABEL;
         }
       else
         {
-          assembler->code[(*pc)++] = (char)reg;
+          cmd->reg = 1;
 
-          if (listingFile)
-            fprintf(listingFile, "%02X", (unsigned)reg);
+          offset   = 3;
+
+          if (cmd->mem)
+            {
+              *(int *)(assembler->code + *pc) = reg;
+
+              *pc += sizeof(int);
+
+              if (listingFile)
+                fprintf(listingFile, "%08X", (unsigned)reg);
+            }
+          else
+            {
+              assembler->code[(*pc)++] = (char)reg;
+
+              if (listingFile)
+                fprintf(listingFile, "%02X", (unsigned)reg);
+            }
         }
     }
   else if (args == 1)
@@ -345,6 +367,9 @@ static int parseArgs(Assembler *assembler, char *string, size_t *pc, FILE *listi
     return ASSEMBLER_INCORRECT_ARGUMENTS;
 
   string += offset;
+  //static int i = 0;
+
+  //printf("%d:'%s' %d\n", i++, string, offset);
 
   if (cmd->mem && *string++ != ']')
        return ASSEMBLER_INCORRECT_ARGUMENTS;
@@ -373,7 +398,11 @@ static int getRegNumber(const char *name)
   return reg;
 }
 
-static int findLabel(const Assembler *assembler, const char *name, int *address)
+static int findLabel(
+                     const Assembler *assembler,
+                     const char *name,
+                     int *address
+                     )
 {
   assert(assembler);
   assert(name);
@@ -390,4 +419,62 @@ static int findLabel(const Assembler *assembler, const char *name, int *address)
     }
 
     return 0;
+}
+
+static int parseLabel(
+                      Assembler *assembler,
+                      char *string,
+                      size_t *pc,
+                      int *offset,
+                      FILE *listingFile
+                      )
+{
+  assert(assembler);
+  assert(string);
+  assert(pc);
+
+  char *startLabel = string;
+
+  while (!isspace(*string) && *string && *string != ']')
+    ++string;
+
+  char *endLabel = string;
+
+  if (offset)
+    *offset = (int)(endLabel - startLabel);
+
+  if (startLabel == endLabel)
+    return ASSEMBLER_INCORRECT_LABEL;
+
+  if (!isStringEmpty(*string == ']' ? string + 1 : string))
+    return ASSEMBLER_INCORRECT_LABEL;
+
+  char temp = *endLabel;
+
+  *endLabel = '\0';
+
+  int labelAddress = 0;
+
+  if (findLabel(assembler, startLabel, &labelAddress))
+    *(int *)(assembler->code + *pc) = labelAddress;
+  else
+    {
+      if (assembler->compilationTime == 1)
+        *(int *)(assembler->code + *pc) = -1;
+      else
+        {
+          handleError("No such label [%s]", startLabel);
+
+          return ASSEMBLER_INCORRECT_LABEL;
+        }
+    }
+
+  *pc += sizeof(int);
+
+  *endLabel = temp;
+
+  if (listingFile)
+    fprintf(listingFile, "%06X", (unsigned)labelAddress);
+
+  return 0;
 }

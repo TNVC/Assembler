@@ -27,31 +27,30 @@ static void dumpCPU(SoftCPU *cpu, FILE *file);
 /// @return Pointer to RAM cell with index or nullptr if inedex isn`t correct
 static int *getRAMCell(SoftCPU *cpu, int index);
 
-int checkTitle(FILE *filePtr)
+void initAssembler(SoftCPU *cpu)
 {
-  assert(filePtr);
+  assert(cpu);
 
-  Title title = {};
+  cpu->code         = nullptr;
+  cpu->codeCapacity = 0;
+  cpu->stack        = {};
+  cpu->pc           = 0;
+}
 
-  if (readBin(&title, sizeof(title), 1, filePtr) != 1)
-    return NO_TITLE;
+void destroyAssembler(SoftCPU *cpu)
+{
+  assert(cpu);
 
-  if (strcmp(title.securityCode, SECURITY_CODE))
-    return INCORRECT_TITLE;
-
-  if (title.version != SOFTCPU_CMD_VERSION)
-    {
-      handleError("v.CPU: [%d] v.Exectable: [%d]", SOFTCPU_CMD_VERSION, title.version);
-
-      return DIFFERENT_VERSION;
-    }
-
-  return title.cmdCount;
+  free(cpu->code);
+  cpu->codeCapacity = 0;
+  cpu->stack        = {};
+  cpu->pc           = 0;
 }
 
 int execute(SoftCPU *cpu)
 {
   assert(cpu);
+  getLogFile();
 
   for (cpu->pc = 0; cpu->pc < cpu->codeCapacity; ++cpu->pc)
     {
@@ -60,10 +59,18 @@ int execute(SoftCPU *cpu)
       switch (cmd.code)
         {
 
+#if defined DEBUG_BUILD_
+#define DEF_CMD(name, num, hasArg, ...)         \
+          case num:                             \
+            dumpCPU(cpu, getLogFile());         \
+            __VA_ARGS__                         \
+              break;
+#else
 #define DEF_CMD(name, num, hasArg, ...)         \
           case num:                             \
             __VA_ARGS__                         \
               break;
+#endif
 
 #include "cmd.h"
 
@@ -78,6 +85,10 @@ int execute(SoftCPU *cpu)
         }
     }
 
+#if defined DEBUG_BUILD_
+  dumpCPU(cpu, getLogFile());
+#endif
+
   return 0;
 }
 
@@ -86,17 +97,33 @@ static void dumpCPU(SoftCPU *cpu, FILE *file)
   fprintf(file, "%*s ", 8, "");
 
   for (unsigned i = 0; i < 16; ++i)
-    fprintf(file, "%0*X ", 2, i);
+    fprintf(file, " %2.2X ", i);
 
   for (unsigned i = 0; i < cpu->codeCapacity; ++i)
     {
       if (i % 16 == 0)
-        fprintf(file, "\n%08X ", i);
+        fprintf(file, "\n%8.8X:", i);
 
       if (i == cpu->pc)
-        fprintf(file, "\b[%0*X]", 2, (unsigned)cpu->code[i]);
+        fprintf(file, "[%2.2X]", (unsigned char)cpu->code[i]);
       else
-        fprintf(file, "%0*X "   , 2, (unsigned)cpu->code[i]);
+        fprintf(file, " %2.2X ", (unsigned char)cpu->code[i]);
+    }
+
+  putc('\n', file);
+  putc('\n', file);
+
+  fprintf(file, "%*s ", 8, "");
+
+  for (unsigned i = 0; i < 16; ++i)
+    fprintf(file, " %2.2X ", i);
+
+  for (unsigned i = 0; i < RAM_SIZE; ++i)
+    {
+      if (i % 16 == 0)
+        fprintf(file, "\n%8.8X:", i);
+
+      fprintf(file, " %2.2X ", (unsigned char)cpu->RAM[i]);
     }
 
   putc('\n', file);

@@ -1,28 +1,23 @@
 #ifndef SOFTCPUCMD_H_
 #define SOFTCPUCMD_H_
 
-#define MAX_WORD_LENGTH 4
+/// Max length in chars of command word
+#define MAX_WORD_LENGTH 8
+/// Max length in chars of register name
 #define MAX_REG_LENGTH  3
-
+/// Count of registers in softCPU
 #define REGISTERS_COUNT 4
 
-const char SOFTCPU_CMD_VERSION = 1;
-
-const char SECURITY_CODE[] = "DB";
-
-struct Title {
-  char securityCode[3];
-  char version;
-  int cmdCount;
-};
-
+/// Command struct
 struct Command {
-  unsigned char code  : 5;
-  unsigned char mem   : 1;
-  unsigned char reg   : 1;
-  unsigned char immed : 1;
+  unsigned char code  : 5; /// <- Code of cmd
+  unsigned char mem   : 1; /// <- Argument status: take value from RAM
+  unsigned char reg   : 1; /// <- Argument status: take value from register
+  unsigned char immed : 1; /// <- Argument statsu: take value immediately from argument
 };
 
+/// Enumeration of cmd codes
+/// @note Autogenerate from cmd.h
 enum SoftCpuCmd {
 
 #define DEF_CMD(name, num, hasArg, ...)         \
@@ -33,6 +28,5 @@ enum SoftCpuCmd {
 #undef DEF_CMD
 
 };
-
 
 #endif

@@ -110,9 +110,9 @@ DEF_CMD(JMP , 12, 1, {
 
     if (arg)
       {
-        CHECK_ADR(arg);
+        CHECK_ADR(*arg);
 
-        SET_PC(arg);
+        SET_PC(*arg);
       }
     else
       NO_ARG;
@@ -140,7 +140,54 @@ DEF_CMD(OUTR, 22, 0, {
     if (SIZE < 2)
       NO_SIZE;
 
-    printf("%.4f\n", TO_REAL(POP, POP));
+    printf("%.4lf\n", TO_REAL(POP, POP));
+  })
+
+DEF_CMD(INR, 23, 0, {
+    REAL a = 0;
+
+    if (scanf("%lf", &a) != 1)
+      {
+        handleError("No input!!");
+
+        return SOFTCPU_NO_INPUT;
+      }
+
+    PUSH(FRACT(a));
+    PUSH(INT(a));
+})
+
+DEF_CMD(OUTC, 24, 0, {
+    if (SIZE < 1)
+      NO_SIZE;
+
+    printf("%c", POP);
+  })
+
+DEF_CMD(RET, 25, 0, {
+    if (SIZE < 1)
+      NO_SIZE;
+
+    VAR adr = POP;
+
+    CHECK_ADR(adr);
+
+    SET_PC(adr);
+  })
+
+DEF_CMD(CALL, 26, 1, {
+    VAR *arg = ARG;
+
+    if (arg)
+      {
+        CHECK_ADR(*arg);
+
+        PUSH(cpu->pc + 1);
+
+        SET_PC(*arg);
+      }
+    else
+      NO_ARG;
   })
 
 #undef DEF_JMP

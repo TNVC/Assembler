@@ -102,19 +102,25 @@ int main(const int argc, const char * const argv[])
 
           destroyStrings(&strings);
 
+          fclose(targetFile);
+
           return 0;
         }
     }
 
   Assembler assembler = {};
 
+  initAssembler(&assembler);
+
     if (!compile(&assembler, strings.sequence, strings.stringsCount))
       if (!compile(&assembler, strings.sequence, strings.stringsCount, listingFile))
        writeCode(&assembler, targetFile);
 
   fclose(targetFile);
+  if (getListingFileName())
+    fclose(listingFile);
 
-  free(assembler.code);
+  destroyAssembler(&assembler);
 
   destroyStrings(&strings);
 

@@ -378,6 +378,9 @@ size_t stack_size(const Stack *stk, unsigned *error)
 {
   CHECK_VALID(stk, error, -1u);
 
+  if ((stk->status & EMPTY))
+    return 0;
+
   return stk->lastElementIndex + 1;
 }
 
