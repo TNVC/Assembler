@@ -136,32 +136,8 @@ DEF_MATH(COS, 20, cos)
 
 DEF_MATH(TAN, 21, tan)
 
-DEF_CMD(OUTR, 22, 0, {
-    if (SIZE < 2)
-      NO_SIZE;
-
-    printf("%.4lf\n", TO_REAL(POP, POP));
-  })
-
-DEF_CMD(INR, 23, 0, {
-    REAL a = 0;
-
-    if (scanf("%lf", &a) != 1)
-      {
-        handleError("No input!!");
-
-        return SOFTCPU_NO_INPUT;
-      }
-
-    PUSH(FRACT(a));
-    PUSH(INT(a));
-})
-
-DEF_CMD(OUTC, 24, 0, {
-    if (SIZE < 1)
-      NO_SIZE;
-
-    printf("%c", POP);
+DEF_CMD(SHOW, 22, 0, {
+    showMemory(cpu);
   })
 
 DEF_CMD(RET, 25, 0, {
@@ -182,7 +158,7 @@ DEF_CMD(CALL, 26, 1, {
       {
         CHECK_ADR(*arg);
 
-        PUSH(cpu->pc + 1);
+        PUSH((VAR)(cpu->pc + 1));
 
         SET_PC(*arg);
       }

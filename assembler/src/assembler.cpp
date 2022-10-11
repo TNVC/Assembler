@@ -367,9 +367,6 @@ static int parseArgs(
     return ASSEMBLER_INCORRECT_ARGUMENTS;
 
   string += offset;
-  //static int i = 0;
-
-  //printf("%d:'%s' %d\n", i++, string, offset);
 
   if (cmd->mem && *string++ != ']')
        return ASSEMBLER_INCORRECT_ARGUMENTS;

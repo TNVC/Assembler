@@ -4,9 +4,11 @@
 #include "stack.h"
 
 /// Count of registers in softCpu
-#define REGISTERS_COUNT 4
+#define REGISTERS_COUNT 5
 /// Size of RAM in softCPU
-#define RAM_SIZE 128
+#define RAM_SIZE 3029
+/// Size of one line in RAM when it interpret like video memory
+const int MEMORY_LINE_SIZE = 101;
 
 /// Singelton SoftCPU-object
 struct SoftCPU {

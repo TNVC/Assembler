@@ -27,6 +27,11 @@ static void dumpCPU(SoftCPU *cpu, FILE *file);
 /// @return Pointer to RAM cell with index or nullptr if inedex isn`t correct
 static int *getRAMCell(SoftCPU *cpu, int index);
 
+/// Display RAM content
+/// @param [in] cpu SoftCPU-object with RAM cell
+/// @note Size of line in RAM gets from MEMORY_LINE_SIZE in executer.h
+static void showMemory(SoftCPU *cpu);
+
 void initAssembler(SoftCPU *cpu)
 {
   assert(cpu);
@@ -249,10 +254,24 @@ static int *getRAMCell(SoftCPU *cpu, int index)
 
   clock_t start = clock();
 
-  clock_t delay = CLOCKS_PER_SEC / 10;
+  clock_t delay = CLOCKS_PER_SEC / (RAM_SIZE*50);
 
   while (clock() - start <= delay)
     continue;
 
   return &cpu->RAM[index];
+}
+
+static void showMemory(SoftCPU *cpu)
+{
+  assert(cpu);
+
+  static char chars[] = "i@o_\\(bpr/Pzmd0&*+hw.qt C>W'l?T\"^8xZuO[Uan}Lf)]JB1Q#k%Y:XIS{|vcj!M~,;<-`\n$";
+
+  for (int i = 0; i < RAM_SIZE; ++i)
+    {
+      putchar(chars[*getRAMCell(cpu, i)]);
+    }
+
+  putchar('\n');
 }

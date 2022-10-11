@@ -1,14 +1,16 @@
 #define VAR int
+
 #define REAL double
 #define INT(real) (int)real
 #define FRACT(real) (int)((real - (int)real) * 10000)
 #define TO_REAL(INT, FRACT) (INT + (FRACT / 10000.0))
+
 #define PUSH(value) stack_push(&cpu->stack, value)
 #define POP  stack_pop (&cpu->stack)
 #define TOP  stack_top(&cpu->stack)
 #define SIZE stack_size(&cpu->stack)
 #define ARG  parseArg(cpu)
-//#define REG(name)
+#define REG(name) cpu->registers[#name[1] - 'a']
 #define SET_PC(arg) cpu->pc = (size_t)arg - 1
 #define CHECK_ADR(address)                                        \
   do                                                              \
