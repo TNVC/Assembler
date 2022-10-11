@@ -270,8 +270,11 @@ static void showMemory(SoftCPU *cpu)
 
   for (int i = 0; i < RAM_SIZE; ++i)
     {
-      putchar(chars[*getRAMCell(cpu, i)]);
-    }
+      int cell = *getRAMCell(cpu, i);
 
-  putchar('\n');
+      if (cell == -1)
+        break;
+
+      putchar(chars[cell]);
+    }
 }

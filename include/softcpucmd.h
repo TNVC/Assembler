@@ -6,7 +6,13 @@
 /// Max length in chars of register name
 #define MAX_REG_LENGTH  3
 /// Count of registers in softCPU
-#define REGISTERS_COUNT 4
+/// Num - Name - description
+/// 0   - rax  - General register
+/// 1   - rbx  - General register
+/// 2   - rcx  - General register
+/// 3   - rdx  - General register
+/// 4   - rex  - Real sensitive register
+#define REGISTERS_COUNT 5
 
 /// Command struct
 struct Command {

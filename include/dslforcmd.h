@@ -1,9 +1,18 @@
 #define VAR int
 
+#define ACCURACY 10000.
 #define REAL double
-#define INT(real) (int)real
-#define FRACT(real) (int)((real - (int)real) * 10000)
-#define TO_REAL(INT, FRACT) (INT + (FRACT / 10000.0))
+#define INT(real) (int)(real)
+#define FRACT(real) (int)(((real) - (int)(real)) * ACCURACY)
+#define TO_REAL(INT, FRACT) (INT + ((FRACT) / ACCURACY))
+#define POP_REAL TO_REAL(POP, POP)
+#define PUSH_REAL(value)                        \
+  do                                            \
+    {                                           \
+      PUSH(FRACT(VALUE));                       \
+      PUSH(INT(value));                         \
+    } while (0)
+#define TOP_REAL TO_REAL(TOP, cpu->stack.array[cpu->stack.lastElementIndex - 2])
 
 #define PUSH(value) stack_push(&cpu->stack, value)
 #define POP  stack_pop (&cpu->stack)
@@ -34,7 +43,7 @@
     } while (0)
 #define DEF_JMP(name, num, operator)            \
   DEF_CMD(name, num, 1, {                       \
-      if (SIZE < 2)                             \
+      if (SIZE < (REG(reg) ? 4 : 2))            \
         NO_SIZE;                                \
                                                 \
       VAR *arg = ARG;                           \
@@ -43,8 +52,16 @@
         {                                       \
           CHECK_ADR(*arg);                      \
                                                 \
-          if (POP operator POP)                 \
-            SET_PC(*arg);                       \
+          if (REG(reg))                         \
+            {                                   \
+              if (POP_REAL operator POP_REAL)   \
+                SET_PC(*arg);                   \
+            }                                   \
+          else                                  \
+            {                                   \
+              if (POP operator POP)             \
+                SET_PC(*arg);                   \
+            }                                   \
         }                                       \
       else                                      \
         NO_ARG;                                 \

@@ -4,11 +4,15 @@
 #include "stack.h"
 
 /// Count of registers in softCpu
+/// Num - Name - description
+/// 0   - rax  - General register
+/// 1   - rbx  - General register
+/// 2   - rcx  - General register
+/// 3   - rdx  - General register
+/// 4   - rex  - Real sensitive register
 #define REGISTERS_COUNT 5
 /// Size of RAM in softCPU
-#define RAM_SIZE 3029
-/// Size of one line in RAM when it interpret like video memory
-const int MEMORY_LINE_SIZE = 101;
+#define RAM_SIZE 3030
 
 /// Singelton SoftCPU-object
 struct SoftCPU {
