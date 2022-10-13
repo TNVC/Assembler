@@ -7,7 +7,7 @@
 *.asm
 *.temp
 *.bin
-compileLog
+compileLog/
 .log/
 a
 assembler
