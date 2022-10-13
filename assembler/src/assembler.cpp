@@ -128,10 +128,10 @@ int compile(
       if (sscanf(strings[i].buff, "%8s%n", cmdString, &offset) != 1)
         continue;
 
-
 #define DEF_CMD(name, num, hasArg, ...)                                 \
       if (!stricmp(cmdString, #name))                                   \
     {                                                                   \
+                                                                        \
       assembler->code[pc++] = num;                                      \
                                                                         \
       if (listingFile)                                                  \
@@ -215,9 +215,8 @@ int compile(
 
   if (assembler->compilationTime == 1 && pc && pc != assembler->codeCapacity)
     {
-      //      printf("%p %zu % zu", assembler->code, pc, sizeof(char));
       char *temp = (char *)recalloc(assembler->code, pc, sizeof(char));
-
+      
       assembler->codeCapacity = pc;
 
       if (!temp)

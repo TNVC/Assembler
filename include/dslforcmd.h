@@ -4,12 +4,12 @@
 #define REAL double
 #define INT(real) (int)(real)
 #define FRACT(real) (int)(((real) - (int)(real)) * ACCURACY)
-#define TO_REAL(INT, FRACT) (INT + ((FRACT) / ACCURACY))
+#define TO_REAL(INT, FRACT) (INT + (1. * (FRACT) / ACCURACY))
 #define POP_REAL TO_REAL(POP, POP)
 #define PUSH_REAL(value)                        \
   do                                            \
     {                                           \
-      PUSH(FRACT(VALUE));                       \
+      PUSH(FRACT(value));                       \
       PUSH(INT(value));                         \
     } while (0)
 #define TOP_REAL TO_REAL(TOP, cpu->stack.array[cpu->stack.lastElementIndex - 2])

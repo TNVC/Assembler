@@ -12,7 +12,8 @@
 /// 4   - rex  - Real sensitive register
 #define REGISTERS_COUNT 5
 /// Size of RAM in softCPU
-#define RAM_SIZE 3030
+#define RAM_SIZE 4096
+
 
 /// Singelton SoftCPU-object
 struct SoftCPU {

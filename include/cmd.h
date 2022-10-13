@@ -18,7 +18,12 @@ DEF_CMD(ADD ,  2, 0, {
       NO_SIZE;
 
     if (REG(rex))
-      PUSH_REAL(POP_REAL + POP_REAL);
+      {
+        REAL a = POP_REAL;
+        REAL b = POP_REAL;
+
+        PUSH_REAL(a + b);
+      }
     else
       PUSH(POP + POP);
   })
@@ -28,7 +33,12 @@ DEF_CMD(SUB ,  3, 0, {
       NO_SIZE;
 
     if (REG(rex))
-      PUSH_REAL(POP_REAL - POP_REAL);
+      {
+        REAL a = POP_REAL;
+        REAL b = POP_REAL;
+
+        PUSH_REAL(a - b);
+      }
     else
       PUSH(POP - POP);
   })
@@ -38,7 +48,12 @@ DEF_CMD(MUL ,  4, 0, {
       NO_SIZE;
 
     if (REG(rex))
-      PUSH_REAL(POP_REAL * POP_REAL);
+      {
+        REAL a = POP_REAL;
+        REAL b = POP_REAL;
+
+        PUSH_REAL(a * b);
+      }
     else
       PUSH(POP * POP);
   })
@@ -88,7 +103,10 @@ DEF_CMD(OUT ,  6, 0, {
   })
 
 DEF_CMD(DUMP,  7, 0, {
-    dumpCPU(cpu, getLogFile());
+    dumpCPU(cpu, stdout);
+
+    getchar();
+    getchar();
   })
 
 DEF_CMD(IN  ,  8, 0, {
@@ -121,17 +139,20 @@ DEF_CMD(IN  ,  8, 0, {
   })
 
 DEF_CMD(COPY,  9, 0, {
-    if (SIZE < 1)
+    if (SIZE < (REG(reg) ? 2 : 1))
       NO_SIZE;
 
     if (REG(rex))
-      PUSH_REAL(TOP_REAL);
+      {
+        REAL a = TOP_REAL;
+        PUSH_REAL(a);
+      }
     else
       PUSH(TOP);
   })
 
 DEF_CMD(SWAP, 10, 0, {
-    if (SIZE < 2)
+    if (SIZE < (REG(reg) ? 4 : 2))
       NO_SIZE;
 
     if (REG(rex))
@@ -139,8 +160,8 @@ DEF_CMD(SWAP, 10, 0, {
         REAL a = POP_REAL;
         REAL b = POP_REAL;
 
-        PUSH_REAL(b);
         PUSH_REAL(a);
+        PUSH_REAL(b);
       }
     else
       {
@@ -185,54 +206,54 @@ DEF_JMP(JA , 15, > )
 
 DEF_JMP(JAE, 16, >=)
 
-DEF_CMD(JE, 17, 1, {                                      \
-    if (SIZE < (REG(reg) ? 4 : 2))                        \
-      NO_SIZE;                                            \
-                                                          \
-    VAR *arg = ARG;                                       \
-                                                          \
-    if (arg)                                              \
-      {                                                   \
-        CHECK_ADR(*arg);                                  \
-                                                          \
-        if (REG(reg))                                     \
-          {                                               \
-            if (fabs(POP_REAL - POP_REAL) < 0.00001)      \
-              SET_PC(*arg);                               \
-          }                                               \
-        else                                              \
-          {                                               \
-            if (POP == POP)                               \
-              SET_PC(*arg);                               \
-          }                                               \
-      }                                                   \
-    else                                                  \
-      NO_ARG;                                             \
+DEF_CMD(JE, 17, 1, {
+    if (SIZE < (REG(reg) ? 4 : 2))
+      NO_SIZE;
+
+    VAR *arg = ARG;
+
+    if (arg)
+      {
+        CHECK_ADR(*arg);
+
+        if (REG(reg))
+          {
+            if (fabs(POP_REAL - POP_REAL) < 0.00001)
+              SET_PC(*arg);
+          }
+        else
+          {
+            if (POP == POP)
+              SET_PC(*arg);
+          }
+      }
+    else
+      NO_ARG;
   })
 
-DEF_CMD(JNE, 18, 1, {                                     \
-    if (SIZE < (REG(reg) ? 4 : 2))                        \
-      NO_SIZE;                                            \
-                                                          \
-    VAR *arg = ARG;                                       \
-                                                          \
-    if (arg)                                              \
-      {                                                   \
-        CHECK_ADR(*arg);                                  \
-                                                          \
-        if (REG(reg))                                     \
-          {                                               \
-            if (fabs(POP_REAL - POP_REAL) > 0.00001)      \
-              SET_PC(*arg);                               \
-          }                                               \
-        else                                              \
-          {                                               \
-            if (POP != POP)                               \
-              SET_PC(*arg);                               \
-          }                                               \
-      }                                                   \
-    else                                                  \
-      NO_ARG;                                             \
+DEF_CMD(JNE, 18, 1, {
+    if (SIZE < (REG(reg) ? 4 : 2))
+      NO_SIZE;
+
+    VAR *arg = ARG;
+
+    if (arg)
+      {
+        CHECK_ADR(*arg);
+
+        if (REG(reg))
+          {
+            if (fabs(POP_REAL - POP_REAL) > 0.00001)
+              SET_PC(*arg);
+          }
+        else
+          {
+            if (POP != POP)
+              SET_PC(*arg);
+          }
+      }
+    else
+      NO_ARG;
   })
 
 DEF_MATH(SIN, 19, sin)
@@ -240,6 +261,8 @@ DEF_MATH(SIN, 19, sin)
 DEF_MATH(COS, 20, cos)
 
 DEF_MATH(TAN, 21, tan)
+
+DEF_MATH(SQRT, 23, sqrt)
 
 DEF_CMD(SHOW, 22, 0, {
     showMemory(cpu);

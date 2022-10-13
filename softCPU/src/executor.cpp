@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <wchar.h>
 #include <string.h>
 #include <math.h>
 #include <time.h>
@@ -55,7 +56,6 @@ void destroyAssembler(SoftCPU *cpu)
 int execute(SoftCPU *cpu)
 {
   assert(cpu);
-  getLogFile();
 
   for (cpu->pc = 0; cpu->pc < cpu->codeCapacity; ++cpu->pc)
     {
@@ -254,7 +254,7 @@ static int *getRAMCell(SoftCPU *cpu, int index)
 
   clock_t start = clock();
 
-  clock_t delay = CLOCKS_PER_SEC / (RAM_SIZE*50);
+  clock_t delay = CLOCKS_PER_SEC / (RAM_SIZE * 30);
 
   while (clock() - start <= delay)
     continue;
@@ -266,15 +266,23 @@ static void showMemory(SoftCPU *cpu)
 {
   assert(cpu);
 
-  static char chars[] = "i@o_\\(bpr/Pzmd0&*+hw.qt C>W'l?T\"^8xZuO[Uan}Lf)]JB1Q#k%Y:XIS{|vcj!M~,;<-`\n$";
-
   for (int i = 0; i < RAM_SIZE; ++i)
     {
       int cell = *getRAMCell(cpu, i);
 
-      if (cell == -1)
+      if (cell == 0)
         break;
-
-      putchar(chars[cell]);
+      else if (cell == -1)
+        system("clear");
+      else
+        putchar(cell);
     }
+    
+  clock_t start = clock();
+
+  clock_t delay = CLOCKS_PER_SEC / 24;
+
+  while (clock() - start <= delay)
+    continue;
+
 }

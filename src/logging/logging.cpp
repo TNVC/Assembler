@@ -55,7 +55,7 @@ static unsigned initLog();
 /// @note Autocallable
 static void destroyLog();
 
-/// Try to open new file with name from getNewLogFileName() 
+/// Try to open new file with name from getNewLogFileName()
 /// @return Was file open
 /// @note Don`t auto close files
 static int openNewLogFile();

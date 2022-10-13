@@ -290,7 +290,7 @@ Element stack_top(Stack *stk, unsigned *error)
     return 0;
   }
   
-  return stk->array[stk->lastElementIndex];
+  return stk->array[stk->lastElementIndex - 1];
 }
 
 void stack_resize(Stack *stk, size_t newSize, unsigned *error)

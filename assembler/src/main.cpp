@@ -12,6 +12,9 @@
 
 int main(const int argc, const char * const argv[])
 {
+  /// logging.cpp 6,176 bytes
+
+  /// 24 bytes
   if (parseConsoleArgs(argc, argv))
     return 0;
 
@@ -27,6 +30,7 @@ int main(const int argc, const char * const argv[])
 
   initStrings(&strings);
 
+  /// 12,798 bytes
   strings.size = readFile(&strings.originBuffer, getSourceFileName());
 
   switch (strings.size)
@@ -58,6 +62,7 @@ int main(const int argc, const char * const argv[])
       }
     }
 
+  /// 19,358
   strings.sequence = parseToLines(strings.originBuffer, strings.size, &strings.stringsCount);
 
   if (!strings.sequence)
@@ -112,9 +117,14 @@ int main(const int argc, const char * const argv[])
 
   initAssembler(&assembler);
 
-    if (!compile(&assembler, strings.sequence, strings.stringsCount))
-      if (!compile(&assembler, strings.sequence, strings.stringsCount, listingFile))
-       writeCode(&assembler, targetFile);
+  /// 28,312 bytes
+
+  /// 410, 825, 1655, 1024 for code
+  /// 33,432 bytes - 28,857 bytes(3alloc) for listing and 29,928 bytes - 25,832 bytes for fprintf
+  if (!compile(&assembler, strings.sequence, strings.stringsCount))
+      /// 32,408 bytes
+    if (!compile(&assembler, strings.sequence, strings.stringsCount, listingFile))
+      writeCode(&assembler, targetFile);
 
   fclose(targetFile);
   if (getListingFileName())
