@@ -35,4 +35,17 @@ int isStringEmpty(const char *string);
 /// positive value if first bigger than second oe zero if first equals second
 int strcmpto(const char *first, const char *second, char determinant);
 
+/// Check that C-like string between start and end has spaces chars
+/// @param [in] start First char of C-like string
+/// @param [in] end First char after C-like string
+/// @return 1 if has or 0 if hasn`t
+int hasSpace(const char *start, const char *end);
+
+/// Check that C-like string between start and end has correct C name
+/// @param [in] start First char of C-like string
+/// @param [in] end First char after C-like string
+/// @return 1 if has or 0 if hasn`t
+/// @note Correct name is name contains only alphas, digits, lower lines and dollars
+int isCorrectName(const char *start, const char *end);
+
 #endif

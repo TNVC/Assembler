@@ -14,6 +14,9 @@
 /// 4   - rex  - Real sensitive register
 #define REGISTERS_COUNT 5
 
+typedef int  data_t;
+typedef char cmd_t;
+
 /// Command struct
 struct Command {
   unsigned char code  : 5; /// <- Code of cmd

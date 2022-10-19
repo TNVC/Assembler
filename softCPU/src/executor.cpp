@@ -1,57 +1,87 @@
 #include <stdio.h>
-#include <wchar.h>
 #include <string.h>
 #include <math.h>
 #include <time.h>
-#include "executor.h"
+#include "softcpu.h"
 #include "fiofunctions.h"
 #include "systemlike.h"
-#include "softcpucmd.h"
 #include "stack.h"
 #include "logging.h"
 #include "errorhandler.h"
 #include "asserts.h"
 
+#define FILE_IS_BROKEN                            \
+  do                                              \
+    {                                             \
+      handleError("Executable file is broken!!"); \
+                                                  \
+      return SOFTCPU_FILE_IS_BROKEN;              \
+    } while (0)
+
+#define INCORRECT_REGISTER                        \
+  do                                              \
+    {                                             \
+      handleError("Incorrect register number!!"); \
+                                                  \
+      return SOFTCPU_INCORRECT_REGISTER;          \
+    } while (0)
+
+#define INCORRECT_ADDRESS                                     \
+  do                                                          \
+    {                                                         \
+      handleError("Incorrect RAM address [%d]!!", memIndex);  \
+                                                              \
+      return nullptr;                                         \
+    } while (0)
+
+/// Sleep delay
+/// @param [in] delay Delay for sleep
+static void sleep(clock_t delay);
+
 /// Parse argument of current cmd
 /// @param [in] cpu SoftCPU object with memory and pc
 /// @return Pointer to needed memory cell or nullptr if Arg isn`t correct
-static int *parseArg(SoftCPU *cpu);
+static data_t *parseArg(SoftCPU *cpu);
+
+/// Get arguments from code array
+/// @param [in] cpu SoftCPU object
+/// @param [in] cmd Cmd with arguments flags
+/// @param [out] num Place where need write immediately constant if it has
+/// @param [out] regNum Place where need write register number if it has
+/// @return Error`s
+/// @note If num or regNum is nullptr don`t try write
+static int getArgs(SoftCPU *cpu, Command cmd, data_t *num, cmd_t *regNum);
 
 /// Dump CPU
 /// @param [in] cpu SoftCPU object for dump
 /// @param [in] file File for dump
 static void dumpCPU(SoftCPU *cpu, FILE *file);
 
+/// Dump code array
+/// @param [in] cpu SoftCPU object
+/// @param [in] file File for dump
+static void dumpCode(SoftCPU *cpu, FILE *file);
+
+/// Dump RAM
+/// @param [in] cpu SoftCPU object
+/// @param [in] file File for dump
+static void dumpRAM(SoftCPU *cpu, FILE *file);
+
+/// Dump register
+/// @param [in] cpu SoftCPU object
+/// @param [in] file File for dump
+static void dumpRegisters(SoftCPU *cpu, FILE *file);
+
 /// Return address of RAM cell with index in cpu
 /// @param [in] cpu SoftCPU object with RAM
 /// @param [in] index Index of needed cell in RAM
 /// @return Pointer to RAM cell with index or nullptr if inedex isn`t correct
-static int *getRAMCell(SoftCPU *cpu, int index);
+static data_t *getRAMCell(SoftCPU *cpu, int index);
 
 /// Display RAM content
 /// @param [in] cpu SoftCPU-object with RAM cell
 /// @note Size of line in RAM gets from MEMORY_LINE_SIZE in executer.h
 static void showMemory(SoftCPU *cpu);
-
-void initAssembler(SoftCPU *cpu)
-{
-  assert(cpu);
-
-  cpu->code         = nullptr;
-  cpu->codeCapacity = 0;
-  cpu->stack        = {};
-  cpu->pc           = 0;
-}
-
-void destroyAssembler(SoftCPU *cpu)
-{
-  assert(cpu);
-
-  free(cpu->code);
-  cpu->codeCapacity = 0;
-  cpu->stack        = {};
-  cpu->pc           = 0;
-}
 
 int execute(SoftCPU *cpu)
 {
@@ -67,7 +97,7 @@ int execute(SoftCPU *cpu)
 #if defined DEBUG_BUILD_
 #define DEF_CMD(name, num, hasArg, ...)         \
           case num:                             \
-            dumpCPU(cpu, getLogFile());         \
+            dumpCPU(cpu, stdout;                \
             __VA_ARGS__                         \
               break;
 #else
@@ -99,6 +129,158 @@ int execute(SoftCPU *cpu)
 
 static void dumpCPU(SoftCPU *cpu, FILE *file)
 {
+  assert(cpu);
+  assert(file);
+
+  dumpCode(cpu, file);
+
+  dumpRAM(cpu, file);
+
+  dumpRegisters(cpu, file);
+
+  stack_dump(&cpu->stack, stack_valid(&cpu->stack), file);
+
+  getchar();
+}
+
+static data_t *parseArg(SoftCPU *cpu)
+{
+  assert(cpu);
+
+  Command cmd = *((Command *)cpu->code + cpu->pc++);
+
+  if (cmd.mem && !(cmd.reg || cmd.immed))
+    return nullptr;
+
+  data_t num    =  0;
+  cmd_t  regNum = -1;
+
+  if (getArgs(cpu, cmd, &num, &regNum))
+    return nullptr;
+
+  --cpu->pc;
+
+  if (cmd.mem)
+    {
+      int memIndex = 0;
+
+      if (cmd.reg)
+        memIndex += cpu->registers[(int)regNum];
+
+      if (cmd.immed)
+        memIndex += num;
+
+      if (memIndex >= RAM_SIZE)
+        INCORRECT_ADDRESS;
+
+      return getRAMCell(cpu, memIndex);
+    }
+
+  if (cmd.immed)
+    {
+      static data_t buffer = 0;
+
+      buffer = num;
+
+      if (cmd.reg)
+        buffer += cpu->registers[(int)regNum];
+
+      return &buffer;
+    }
+
+  if (cmd.reg)
+    return &cpu->registers[(int)regNum];
+
+  handleError("Unkwonwn error!!");
+
+  return nullptr;
+}
+
+static int getArgs(SoftCPU *cpu, Command cmd, data_t *num, cmd_t *regNum)
+{
+  assert(cpu);
+
+  if (cmd.immed)
+    {
+      if (cpu->pc + sizeof(data_t) >= cpu->codeCapacity)
+        FILE_IS_BROKEN;
+
+      *num = *(data_t *)(cpu->code + cpu->pc);
+
+      cpu->pc += sizeof(data_t);
+    }
+
+  if (cmd.reg)
+    {
+      if (cpu->pc + sizeof(cmd_t) >= cpu->codeCapacity)
+        FILE_IS_BROKEN;
+
+      *regNum = cpu->code[cpu->pc++];
+
+      if (*regNum < 0 || *regNum >= REGISTERS_COUNT)
+        INCORRECT_REGISTER;
+    }
+
+  return 0;
+}
+
+static data_t *getRAMCell(SoftCPU *cpu, int index)
+{
+  assert(cpu);
+
+  if (index < 0 || index >= RAM_SIZE)
+    return nullptr;
+
+  sleep(CLOCKS_PER_SEC / (RAM_SIZE * 30));
+
+  return &cpu->RAM[index];
+}
+
+struct RGBA  {
+  int alpha : 8;
+  int blue  : 8;
+  int green : 8;
+  int red   : 8;
+};
+
+static void showMemory(SoftCPU *cpu)
+{
+  assert(cpu);
+
+  for (int x = 0; x < RAM_SIZE; ++x)
+    {
+      RGBA cell = *(RGBA *)getRAMCell(cpu, x);
+
+      if (cell.alpha == '\0')
+        return;
+      else if (cell.alpha == -1)
+        printf("\033c");
+      else
+        printf(
+               "\033[38;2;%d;%d;%d;m%c\033[0m",
+               255 - cell.red,
+               255 - cell.green,
+               255 - cell.blue,
+               cell.alpha
+               );
+    }
+
+  sleep(CLOCKS_PER_SEC / 24);
+}
+
+static void sleep(clock_t delay)
+{
+  clock_t start = clock();
+
+  while (clock() - start <= delay)
+    continue;
+}
+
+static void dumpCode(SoftCPU *cpu, FILE *file)
+{
+  assert(cpu);
+  assert(file);
+
   fprintf(file, "%*s ", 8, "");
 
   for (unsigned i = 0; i < 16; ++i)
@@ -118,171 +300,37 @@ static void dumpCPU(SoftCPU *cpu, FILE *file)
   putc('\n', file);
   putc('\n', file);
 
+}
+
+static void dumpRAM(SoftCPU *cpu, FILE *file)
+{
+  assert(cpu);
+  assert(file);
+
   fprintf(file, "%*s ", 8, "");
 
   for (unsigned i = 0; i < 16; ++i)
-    fprintf(file, " %2.2X ", i);
+    fprintf(file, " %8.8X ", i);
 
   for (unsigned i = 0; i < RAM_SIZE; ++i)
     {
       if (i % 16 == 0)
         fprintf(file, "\n%8.8X:", i);
 
-      fprintf(file, " %2.2X ", (unsigned char)cpu->RAM[i]);
+      fprintf(file, " %8.8X ", (unsigned char)cpu->RAM[i]);
     }
 
   putc('\n', file);
   putc('\n', file);
+}
+
+static void dumpRegisters(SoftCPU *cpu, FILE *file)
+{
+  assert(cpu);
+  assert(file);
 
   for (unsigned i = 0; i < REGISTERS_COUNT; ++i)
     fprintf(file, "Reg#%u: %d ", i, cpu->registers[i]);
 
   putc('\n', file);
-
-  stack_dump(&cpu->stack, stack_valid(&cpu->stack), file);
-}
-
-static int *parseArg(SoftCPU *cpu)
-{
-  assert(cpu);
-
-  Command cmd = *((Command *)cpu->code + cpu->pc++);
-
-  if (cmd.mem && !(cmd.reg || cmd.immed))
-    return nullptr;
-
-  /// m r i
-  /// 0 0 0 ---
-  ///========== 0 1 0 +++ rax
-  /// 1 0 0 ---
-  ///========== 0 0 1 +++ 12
-  ///========== 1 1 0 +++ [rax]
-  ///========== 0 1 1 +++ 12+rax
-  ///========== 1 0 1 +++ [12]
-  ///========== 1 1 1 +++ [12+rax]
-
-  int regNum = -1;
-  int num    =  0;
-
-  if (cmd.immed)
-    {
-      if (cpu->pc + sizeof(int) >= cpu->codeCapacity)
-        {
-          handleError("Executable file is broken!!");
-
-          return nullptr;
-        }
-
-      num = *(int *)(cpu->code + cpu->pc);
-
-      cpu->pc += sizeof(int);
-    }
-
-  if (cmd.reg)
-    {
-      if (cpu->pc + sizeof(char) >= cpu->codeCapacity)
-        {
-          handleError("Executable file is broken!!");
-
-          return nullptr;
-        }
-
-      regNum = cpu->code[cpu->pc++];
-
-      if (regNum < 0 || regNum >= REGISTERS_COUNT)
-        {
-          handleError("Incorrect register number!!");
-
-          return nullptr;
-        }
-    }
-
-  if (cmd.mem)
-    {
-      int memIndex = 0;
-
-      if (cmd.reg)
-        memIndex += cpu->registers[regNum];
-
-      if (cmd.immed)
-        memIndex += num;
-
-      if (memIndex >= RAM_SIZE)
-        {
-          handleError("Incorrect RAM address [%d]!!", memIndex);
-
-          return nullptr;
-        }
-
-      --cpu->pc;
-
-      return getRAMCell(cpu, memIndex);
-    }
-
-  if (cmd.immed)
-    {
-      static int buffer = 0;
-
-      buffer = num;
-
-      if (cmd.reg)
-        buffer += cpu->registers[regNum];
-
-      --cpu->pc;
-
-      return &buffer;
-    }
-
-  if (cmd.reg)
-    {
-      --cpu->pc;
-
-      return &cpu->registers[regNum];
-    }
-
-  handleError("Unkwonwn error!!");
-
-  return nullptr;
-}
-
-static int *getRAMCell(SoftCPU *cpu, int index)
-{
-  assert(cpu);
-
-  if (index < 0 || index >= RAM_SIZE)
-    return nullptr;
-
-  clock_t start = clock();
-
-  clock_t delay = CLOCKS_PER_SEC / (RAM_SIZE * 30);
-
-  while (clock() - start <= delay)
-    continue;
-
-  return &cpu->RAM[index];
-}
-
-static void showMemory(SoftCPU *cpu)
-{
-  assert(cpu);
-
-  for (int i = 0; i < RAM_SIZE; ++i)
-    {
-      int cell = *getRAMCell(cpu, i);
-
-      if (cell == 0)
-        break;
-      else if (cell == -1)
-        system("clear");
-      else
-        putchar(cell);
-    }
-    
-  clock_t start = clock();
-
-  clock_t delay = CLOCKS_PER_SEC / 24;
-
-  while (clock() - start <= delay)
-    continue;
-
 }

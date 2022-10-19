@@ -1,10 +1,11 @@
 #ifndef CONSOLEARGSUTILS_H_
 #define CONSOLEARGSUTILS_H_
 
+/// Errors whitch maight be return from parseConsoleArgs
 enum ConsolArgsUtilsError {
-  NO_SUCH_FILE_FOUND        = 0x01 << 0,
-  NO_INPUT_FILES            = 0x01 << 1,
-  INCORRECT_ARGUMENTS       = 0x01 << 2,
+  CONSOLE_NO_SUCH_FILE_FOUND  = 0x01 << 0, /// <- File not exists
+  CONSOLE_NO_INPUT_FILES      = 0x01 << 1, /// <- Not input files
+  CONSOLE_INCORRECT_ARGUMENTS = 0x01 << 2, /// <- Arguments for flags isn`t correct
 };
 
 /// Parse console argument for settings

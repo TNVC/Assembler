@@ -1,6 +1,8 @@
 #ifndef TITLE_H_
 #define TITLE_H_
 
+#include <stdio.h>
+
 const char SOFTCPU_CMD_VERSION = 1;
 
 const char SECURITY_CODE[] = "DB";

@@ -5,6 +5,8 @@
 #include "systemlike.h"
 #include "logging.h"
 
+#include "asserts.h"
+
 #pragma GCC diagnostic ignored "-Wcast-qual"
 #pragma GCC diagnostic ignored "-Wconditionally-supported"
 
@@ -241,6 +243,8 @@ Element stack_pop(Stack *stk, unsigned *error)
 
   if ((stk->status & EMPTY))
   {
+    assert(0);
+  
     if (isPointerCorrect(error))
       *error = 1;
 
@@ -284,6 +288,8 @@ Element stack_top(Stack *stk, unsigned *error)
 
   if ((stk->status & EMPTY))
   {
+    assert(0);
+  
     if (isPointerCorrect(error))
       *error = 1;
 

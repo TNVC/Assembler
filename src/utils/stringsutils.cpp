@@ -110,3 +110,30 @@ int strcmpto(const char *first, const char *second, char determinant)
 
   return first[i] - second[i];
 }
+
+
+int hasSpace(const char *start, const char *end)
+{
+  assert(start);
+  assert(end);
+
+  while (start != end)
+    if (isspace(*start++))
+      return 1;
+
+  return 0;
+}
+
+int isCorrectName(const char *start, const char *end)
+{
+  assert(start);
+  assert(end);
+
+  for ( ; start != end; ++start)
+    {
+      if (!(isalnum(*start) || *start == '_' || *start == '$'))
+        return 0;
+    }
+
+  return 1;
+}

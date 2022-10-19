@@ -1,78 +1,53 @@
 #include "dslforcmd.h"
 
-DEF_CMD(HLT ,  0, 0, {
+DEF_CMD(HLT, 0, 0, {
     return 0;
   })
 
 DEF_CMD(PUSH,  1, 1, {
     VAR *arg = ARG;
 
-    if (arg)
-      PUSH(*arg);
-    else
-      NO_ARG;
+    CHECK_ARG(arg);
+
+    PUSH(*arg);
   })
 
-DEF_CMD(ADD ,  2, 0, {
-    if (SIZE < (REG(reg) ? 4 : 2))
-      NO_SIZE;
+DEF_CMD(ADD, 2, 0, {
+    CHECK_STACK_FOR_BINARY;
 
-    if (REG(rex))
-      {
-        REAL a = POP_REAL;
-        REAL b = POP_REAL;
-
-        PUSH_REAL(a + b);
-      }
+    if (REAL_CALC_TURN_ON)
+      PUSH_REAL(POP_REAL + POP_REAL);
     else
       PUSH(POP + POP);
   })
 
-DEF_CMD(SUB ,  3, 0, {
-    if (SIZE < (REG(reg) ? 4 : 2))
-      NO_SIZE;
+DEF_CMD(SUB, 3, 0, {
+    CHECK_STACK_FOR_BINARY;
 
-    if (REG(rex))
-      {
-        REAL a = POP_REAL;
-        REAL b = POP_REAL;
-
-        PUSH_REAL(a - b);
-      }
+    if (REAL_CALC_TURN_ON)
+      PUSH_REAL(POP_REAL - POP_REAL);
     else
       PUSH(POP - POP);
   })
 
-DEF_CMD(MUL ,  4, 0, {
-    if (SIZE < 2)
-      NO_SIZE;
+DEF_CMD(MUL, 4, 0, {
+    CHECK_STACK_FOR_BINARY;
 
-    if (REG(rex))
-      {
-        REAL a = POP_REAL;
-        REAL b = POP_REAL;
-
-        PUSH_REAL(a * b);
-      }
+    if (REAL_CALC_TURN_ON)
+      PUSH_REAL(POP_REAL * POP_REAL);
     else
       PUSH(POP * POP);
   })
 
-DEF_CMD(DIV ,  5, 0, {
-    if (SIZE < (REG(reg) ? 4 : 2))
-      NO_SIZE;
+DEF_CMD(DIV, 5, 0, {
+    CHECK_STACK_FOR_BINARY;
 
-    if (REG(rex))
+    if (REAL_CALC_TURN_ON)
       {
         REAL a = POP_REAL;
         REAL b = POP_REAL;
 
-        if (fabs(b) < 0.00001)
-          {
-            handleError("DIV by zero!!");
-
-            return SOFTCPU_DIV_BY_ZERO;
-          }
+        CHECK_IS_ZERO(b);
 
         PUSH_REAL(a / b);
       }
@@ -81,45 +56,34 @@ DEF_CMD(DIV ,  5, 0, {
         VAR a = POP;
         VAR b = POP;
 
-        if (b == 0)
-          {
-            handleError("DIV by zero!!");
-
-            return SOFTCPU_DIV_BY_ZERO;
-          }
+        CHECK_IS_ZERO(b);
 
         PUSH(a / b);
       }
   })
 
-DEF_CMD(OUT ,  6, 0, {
-    if (SIZE < (REG(reg) ? 2 : 1))
-      NO_SIZE;
+DEF_CMD(OUT, 6, 0, {
+    CHECK_STACK_FOR_UNARY;
 
-    if (REG(rex))
+    if (REAL_CALC_TURN_ON)
       printf("%lg\n", POP_REAL);
     else
       printf("%d\n", POP);
   })
 
-DEF_CMD(DUMP,  7, 0, {
+DEF_CMD(DUMP, 7, 0, {
     dumpCPU(cpu, stdout);
 
     getchar();
-    getchar();
   })
 
-DEF_CMD(IN  ,  8, 0, {
-    if (REG(reg))
+DEF_CMD(IN, 8, 0, {
+    if (REAL_CALC_TURN_ON)
       {
         REAL a = 0;
 
         if (scanf("%lg", &a) != 1)
-          {
-            handleError("No input!!");
-
-            return SOFTCPU_NO_INPUT;
-          }
+          NO_INPUT;
 
         PUSH_REAL(a);
       }
@@ -128,34 +92,25 @@ DEF_CMD(IN  ,  8, 0, {
         VAR a = 0;
 
         if (scanf("%d", &a) != 1)
-          {
-            handleError("No input!!");
-
-            return SOFTCPU_NO_INPUT;
-          }
+          NO_INPUT;
 
         PUSH(a);
       }
   })
 
-DEF_CMD(COPY,  9, 0, {
-    if (SIZE < (REG(reg) ? 2 : 1))
-      NO_SIZE;
+DEF_CMD(COPY, 9, 0, {
+    CHECK_STACK_FOR_UNARY;
 
-    if (REG(rex))
-      {
-        REAL a = TOP_REAL;
-        PUSH_REAL(a);
-      }
+    if (REAL_CALC_TURN_ON)
+      PUSH_REAL(TOP_REAL);
     else
       PUSH(TOP);
   })
 
 DEF_CMD(SWAP, 10, 0, {
-    if (SIZE < (REG(reg) ? 4 : 2))
-      NO_SIZE;
+    CHECK_STACK_FOR_BINARY;
 
-    if (REG(rex))
+    if (REAL_CALC_TURN_ON)
       {
         REAL a = POP_REAL;
         REAL b = POP_REAL;
@@ -168,34 +123,29 @@ DEF_CMD(SWAP, 10, 0, {
         VAR a = POP;
         VAR b = POP;
 
-        PUSH(b);
         PUSH(a);
+        PUSH(b);
       }
   })
 
-DEF_CMD(POP , 11, 1, {
-    if (SIZE < 1)
-      NO_SIZE;
+DEF_CMD(POP, 11, 1, {
+    CHECK_STACK_FOR_ONE;
 
     VAR *arg = ARG;
 
-    if (arg)
-      *arg = POP;
-    else
-      NO_ARG;
+    CHECK_ARG(arg);
+
+    *arg = POP;
   })
 
-DEF_CMD(JMP , 12, 1, {
+DEF_CMD(JMP, 12, 1, {
     VAR *arg = ARG;
 
-    if (arg)
-      {
-        CHECK_ADR(*arg);
+    CHECK_ARG(arg);
 
-        SET_PC(*arg);
-      }
-    else
-      NO_ARG;
+    CHECK_ADR(*arg);
+
+    SET_PC(*arg);
   })
 
 DEF_JMP(JB , 13, < )
@@ -206,71 +156,24 @@ DEF_JMP(JA , 15, > )
 
 DEF_JMP(JAE, 16, >=)
 
-DEF_CMD(JE, 17, 1, {
-    if (SIZE < (REG(reg) ? 4 : 2))
-      NO_SIZE;
+DEF_JMP_ACCURATE(JE , 17, 1)
 
-    VAR *arg = ARG;
+DEF_JMP_ACCURATE(JNE, 18, 0)
 
-    if (arg)
-      {
-        CHECK_ADR(*arg);
+DEF_MATH(SIN , 19, 0, sin)
 
-        if (REG(reg))
-          {
-            if (fabs(POP_REAL - POP_REAL) < 0.00001)
-              SET_PC(*arg);
-          }
-        else
-          {
-            if (POP == POP)
-              SET_PC(*arg);
-          }
-      }
-    else
-      NO_ARG;
-  })
+DEF_MATH(COS , 20, 0, cos)
 
-DEF_CMD(JNE, 18, 1, {
-    if (SIZE < (REG(reg) ? 4 : 2))
-      NO_SIZE;
+DEF_MATH(TAN , 21, 0, tan)
 
-    VAR *arg = ARG;
+DEF_MATH(SQRT, 22, 1, sqrt)
 
-    if (arg)
-      {
-        CHECK_ADR(*arg);
-
-        if (REG(reg))
-          {
-            if (fabs(POP_REAL - POP_REAL) > 0.00001)
-              SET_PC(*arg);
-          }
-        else
-          {
-            if (POP != POP)
-              SET_PC(*arg);
-          }
-      }
-    else
-      NO_ARG;
-  })
-
-DEF_MATH(SIN, 19, sin)
-
-DEF_MATH(COS, 20, cos)
-
-DEF_MATH(TAN, 21, tan)
-
-DEF_MATH(SQRT, 23, sqrt)
-
-DEF_CMD(SHOW, 22, 0, {
+DEF_CMD(SHOW, 23, 0, {
     showMemory(cpu);
   })
 
-DEF_CMD(RET, 25, 0, {
-    if (SIZE < 1)
-      NO_SIZE;
+DEF_CMD(RET, 24, 0, {
+    CHECK_STACK_FOR_ONE;
 
     VAR adr = POP;
 
@@ -279,20 +182,19 @@ DEF_CMD(RET, 25, 0, {
     SET_PC(adr);
   })
 
-DEF_CMD(CALL, 26, 1, {
+DEF_CMD(CALL, 25, 1, {
     VAR *arg = ARG;
 
-    if (arg)
-      {
-        CHECK_ADR(*arg);
+    CHECK_ARG(arg);
 
-        PUSH((VAR)(cpu->pc + 1));
+    CHECK_ADR(*arg);
 
-        SET_PC(*arg);
-      }
-    else
-      NO_ARG;
+    PUSH((VAR)(cpu->pc + 1));
+
+    SET_PC(*arg);
   })
 
 #undef DEF_JMP
+#undef DEF_JMP_ACCURACY
 #undef DEF_MATH
+#undef MATH
