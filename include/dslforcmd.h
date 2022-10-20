@@ -39,7 +39,7 @@
       NO_SIZE;                                  \
     } while (0)
 
-#define IS_ZERO(val) fabs(val) < 0.00001
+#define IS_ZERO(val) (fabs(val) < 0.00001)
 #define CHECK_IS_ZERO(val)                          \
   do                                                \
     {                                               \
@@ -59,12 +59,12 @@
         return SOFTCPU_INCORRECT_JUMP;                            \
     } while (0)
 
-#define NO_ARG                                  \
-  do                                            \
-  {                                             \
-    handleError("Hasn`t argument!!");           \
-                                                \
-    return SOFTCPU_EMPTY_STACK;                 \
+#define NO_ARG                                        \
+  do                                                  \
+    {                                                 \
+    handleError("Hasn`t argument[%06X]!!", cpu->pc);  \
+                                                      \
+    return SOFTCPU_EMPTY_STACK;                       \
   } while(0)
 #define NO_SIZE                                                         \
   do                                                                    \
@@ -73,70 +73,72 @@
                                                                         \
       return SOFTCPU_EMPTY_STACK;                                       \
     } while (0)
-#define DIV_BY_ZERO                             \
-  do                                            \
-    {                                           \
-      handleError("DIV by zero!!");             \
-                                                \
-      return SOFTCPU_DIV_BY_ZERO;               \
+#define DIV_BY_ZERO                                 \
+  do                                                \
+    {                                               \
+      handleError("DIV by zero[%06X]!!", cpu->pc);  \
+                                                    \
+      return SOFTCPU_DIV_BY_ZERO;                   \
     } while (0)
 #define NO_INPUT                                \
   do                                            \
     {                                           \
-      handleError("No input!!");                \
+      handleError("No input[%06X]!!", cpu->pc); \
                                                 \
       return SOFTCPU_NO_INPUT;                  \
     } while (0)
-#define NEGATIVE_VALUE                          \
-  do                                            \
-    {                                           \
-      handleError("Negative value for math!!"); \
-                                                \
-      return SOFTCPU_NEGATIVE_VALUE;            \
+#define NEGATIVE_VALUE                                          \
+  do                                                            \
+    {                                                           \
+      handleError("Negative value for math[%06X]!!", cpu->pc);  \
+                                                                \
+      return SOFTCPU_NEGATIVE_VALUE;                            \
     } while (0)
 
-#define DEF_JMP(name, num, operator)            \
-  DEF_CMD(name, num, 1, {                       \
-      CHECK_STACK_FOR_BINARY;                   \
-                                                \
-      VAR *arg = ARG;                           \
-                                                \
-      CHECK_ARG(arg);                           \
-                                                \
-      CHECK_ADR(*arg);                          \
-                                                \
-      if (REAL_CALC_TURN_ON)                    \
-        {                                       \
-          if (POP_REAL operator POP_REAL)       \
-            SET_PC(*arg);                       \
-        }                                       \
-      else                                      \
-        {                                       \
-          if (POP operator POP)                 \
-            SET_PC(*arg);                       \
-        }                                       \
+#define DEF_JMP(name, num, operator)                                    \
+  DEF_CMD(name, num, 1, 1, {                                            \
+      CHECK_STACK_FOR_BINARY;                                           \
+                                                                        \
+      VAR *arg = ARG;                                                   \
+                                                                        \
+      CHECK_ARG(arg);                                                   \
+                                                                        \
+      CHECK_ADR(*arg);                                                  \
+                                                                        \
+      if (REAL_CALC_TURN_ON)                                            \
+        {                                                               \
+          if (POP_REAL operator POP_REAL)                               \
+            SET_PC(*arg);                                               \
+        }                                                               \
+      else                                                              \
+        {                                                               \
+          if (POP operator POP)                                         \
+            SET_PC(*arg);                                               \
+        }                                                               \
     })
-#define DEF_JMP_ACCURATE(name, num, isEquals)                           \
-  DEF_CMD(name, num, 1, {                                               \
-    CHECK_STACK_FOR_BINARY;                                             \
+
+#define DEF_JMP_EQUAL(name, num, isEqual)                               \
+  DEF_CMD(name, num, 1, 1, {                                            \
+      CHECK_STACK_FOR_BINARY;                                           \
                                                                         \
-    VAR *arg = ARG;                                                     \
+      VAR *arg = ARG;                                                   \
                                                                         \
-    CHECK_ARG(arg);                                                     \
+      CHECK_ARG(arg);                                                   \
                                                                         \
-    CHECK_ADR(*arg);                                                    \
+      CHECK_ADR(*arg);                                                  \
                                                                         \
-    if (REAL_CALC_TURN_ON)                                              \
-      {                                                                 \
-        REAL first  = POP_REAL;                                         \
-        REAL second = POP_REAL;                                         \
-                                                                        \
-        if(( isEquals &&  IS_ZERO(first - second)) ||                   \
-           !(isEquals || IS_ZERO(first - second)))                      \
-          SET_PC(*arg);                                                 \
-      }                                                                 \
-    else if ((isEquals && (POP == POP)) || (!isEquals && (POP != POP))) \
-              SET_PC(*arg);                                             \
+      if (REAL_CALC_TURN_ON)                                            \
+        {                                                               \
+          if (( isEqual &&  IS_ZERO(POP_REAL - POP_REAL)) ||            \
+              (!isEqual && !IS_ZERO(POP_REAL - POP_REAL)))              \
+            SET_PC(*arg);                                               \
+        }                                                               \
+      else                                                              \
+        {                                                               \
+          if (( isEqual && POP == POP) ||                               \
+              (!isEqual && POP != POP))                                 \
+            SET_PC(*arg);                                               \
+        }                                                               \
     })
 
 #define MATH(type, notNeg, funct, ...)                  \
@@ -153,7 +155,7 @@
     } while (0)
 
 #define DEF_MATH(name, num, notNeg, funct)      \
-  DEF_CMD(name, num, 0, {                       \
+  DEF_CMD(name, num, 0, 0, {                    \
       CHECK_STACK_FOR_UNARY;                    \
                                                 \
       if (REAL_CALC_TURN_ON)                    \

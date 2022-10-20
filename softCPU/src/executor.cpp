@@ -95,15 +95,15 @@ int execute(SoftCPU *cpu)
         {
 
 #if defined DEBUG_BUILD_
-#define DEF_CMD(name, num, hasArg, ...)         \
-          case num:                             \
-            dumpCPU(cpu, stdout;                \
-            __VA_ARGS__                         \
+#define DEF_CMD(name, num, hasArg, isProducentArg, ...) \
+          case num:                                     \
+            dumpCPU(cpu, getLogFile());                 \
+            __VA_ARGS__                                 \
               break;
 #else
-#define DEF_CMD(name, num, hasArg, ...)         \
-          case num:                             \
-            __VA_ARGS__                         \
+#define DEF_CMD(name, num, hasArg, isProducentArg, ...) \
+          case num:                                     \
+            __VA_ARGS__                                 \
               break;
 #endif
 
@@ -252,6 +252,7 @@ static void showMemory(SoftCPU *cpu)
       RGBA cell = *(RGBA *)getRAMCell(cpu, x);
 
       if (cell.alpha == '\0')
+
         return;
       else if (cell.alpha == -1)
         printf("\033c");

@@ -1,10 +1,12 @@
 #include "dslforcmd.h"
 
-DEF_CMD(HLT, 0, 0, {
+//DEF_CMD(name, code, hasArgument, isProducentArgumrnt, executableCode)
+
+DEF_CMD(HLT, 0, 0, 0, {
     return 0;
   })
 
-DEF_CMD(PUSH,  1, 1, {
+DEF_CMD(PUSH,  1, 1, 1, {
     VAR *arg = ARG;
 
     CHECK_ARG(arg);
@@ -12,7 +14,7 @@ DEF_CMD(PUSH,  1, 1, {
     PUSH(*arg);
   })
 
-DEF_CMD(ADD, 2, 0, {
+DEF_CMD(ADD, 2, 0, 0, {
     CHECK_STACK_FOR_BINARY;
 
     if (REAL_CALC_TURN_ON)
@@ -21,7 +23,7 @@ DEF_CMD(ADD, 2, 0, {
       PUSH(POP + POP);
   })
 
-DEF_CMD(SUB, 3, 0, {
+DEF_CMD(SUB, 3, 0, 0, {
     CHECK_STACK_FOR_BINARY;
 
     if (REAL_CALC_TURN_ON)
@@ -30,7 +32,7 @@ DEF_CMD(SUB, 3, 0, {
       PUSH(POP - POP);
   })
 
-DEF_CMD(MUL, 4, 0, {
+DEF_CMD(MUL, 4, 0, 0, {
     CHECK_STACK_FOR_BINARY;
 
     if (REAL_CALC_TURN_ON)
@@ -39,7 +41,7 @@ DEF_CMD(MUL, 4, 0, {
       PUSH(POP * POP);
   })
 
-DEF_CMD(DIV, 5, 0, {
+DEF_CMD(DIV, 5, 0, 0, {
     CHECK_STACK_FOR_BINARY;
 
     if (REAL_CALC_TURN_ON)
@@ -62,7 +64,7 @@ DEF_CMD(DIV, 5, 0, {
       }
   })
 
-DEF_CMD(OUT, 6, 0, {
+DEF_CMD(OUT, 6, 0, 0, {
     CHECK_STACK_FOR_UNARY;
 
     if (REAL_CALC_TURN_ON)
@@ -71,13 +73,13 @@ DEF_CMD(OUT, 6, 0, {
       printf("%d\n", POP);
   })
 
-DEF_CMD(DUMP, 7, 0, {
+DEF_CMD(DUMP, 7, 0, 0, {
     dumpCPU(cpu, stdout);
 
     getchar();
   })
 
-DEF_CMD(IN, 8, 0, {
+DEF_CMD(IN, 8, 0, 0, {
     if (REAL_CALC_TURN_ON)
       {
         REAL a = 0;
@@ -98,7 +100,7 @@ DEF_CMD(IN, 8, 0, {
       }
   })
 
-DEF_CMD(COPY, 9, 0, {
+DEF_CMD(COPY, 9, 0, 0, {
     CHECK_STACK_FOR_UNARY;
 
     if (REAL_CALC_TURN_ON)
@@ -107,7 +109,7 @@ DEF_CMD(COPY, 9, 0, {
       PUSH(TOP);
   })
 
-DEF_CMD(SWAP, 10, 0, {
+DEF_CMD(SWAP, 10, 0, 0, {
     CHECK_STACK_FOR_BINARY;
 
     if (REAL_CALC_TURN_ON)
@@ -128,7 +130,7 @@ DEF_CMD(SWAP, 10, 0, {
       }
   })
 
-DEF_CMD(POP, 11, 1, {
+DEF_CMD(POP, 11, 1, 0, {
     CHECK_STACK_FOR_ONE;
 
     VAR *arg = ARG;
@@ -138,7 +140,7 @@ DEF_CMD(POP, 11, 1, {
     *arg = POP;
   })
 
-DEF_CMD(JMP, 12, 1, {
+DEF_CMD(JMP, 12, 1, 1, {
     VAR *arg = ARG;
 
     CHECK_ARG(arg);
@@ -156,9 +158,9 @@ DEF_JMP(JA , 15, > )
 
 DEF_JMP(JAE, 16, >=)
 
-DEF_JMP_ACCURATE(JE , 17, 1)
+DEF_JMP_EQUAL(JE , 17, 1)
 
-DEF_JMP_ACCURATE(JNE, 18, 0)
+DEF_JMP_EQUAL(JNE, 18, 0)
 
 DEF_MATH(SIN , 19, 0, sin)
 
@@ -168,11 +170,11 @@ DEF_MATH(TAN , 21, 0, tan)
 
 DEF_MATH(SQRT, 22, 1, sqrt)
 
-DEF_CMD(SHOW, 23, 0, {
+DEF_CMD(SHOW, 23, 0, 0, {
     showMemory(cpu);
   })
 
-DEF_CMD(RET, 24, 0, {
+DEF_CMD(RET, 24, 0, 0, {
     CHECK_STACK_FOR_ONE;
 
     VAR adr = POP;
@@ -182,7 +184,7 @@ DEF_CMD(RET, 24, 0, {
     SET_PC(adr);
   })
 
-DEF_CMD(CALL, 25, 1, {
+DEF_CMD(CALL, 25, 1, 1, {
     VAR *arg = ARG;
 
     CHECK_ARG(arg);
@@ -195,6 +197,6 @@ DEF_CMD(CALL, 25, 1, {
   })
 
 #undef DEF_JMP
-#undef DEF_JMP_ACCURACY
+#undef DEF_JMP_EQUAL
 #undef DEF_MATH
 #undef MATH

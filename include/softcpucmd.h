@@ -29,7 +29,7 @@ struct Command {
 /// @note Autogenerate from cmd.h
 enum SoftCpuCmd {
 
-#define DEF_CMD(name, num, hasArg, ...)         \
+#define DEF_CMD(name, num, hasArg, isProducent, ...)  \
   SOFTCPU_##name = num,
 
 #include "cmd.h"
