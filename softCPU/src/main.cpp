@@ -4,14 +4,6 @@
 #include "consoleargsutils.h"
 #include "softcpu.h"
 
-#define END                                     \
-  do                                            \
-    {                                           \
-      destroySoftCPU(&cpu);                     \
-                                                \
-      return 0;                                 \
-    } while (0)
-
 int main(const int argc, const char * const argv[])
 {
   if (parseConsoleArgs(argc, argv))
@@ -20,12 +12,22 @@ int main(const int argc, const char * const argv[])
   SoftCPU cpu = {};
 
   if (initSoftCPU(&cpu))
-    END;
+    {
+      destroySoftCPU(&cpu);
+
+      return 0;
+    }
 
   if (getFileCode(&cpu))
-    END;
+    {
+      destroySoftCPU(&cpu);
+
+      return 0;
+    }
 
   execute(&cpu);
 
-  END;
+  destroySoftCPU(&cpu);
+
+  return 0;
 }

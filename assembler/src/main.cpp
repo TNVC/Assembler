@@ -4,6 +4,7 @@
 #include "assembler.h"
 #include "settings.h"
 
+
 int main(const int argc, const char * const argv[])
 {
   if (parseConsoleArgs(argc, argv))
