@@ -20,6 +20,7 @@ void initAssembler(Assembler *assembler)
   assembler->lastLabel       = 0;
   assembler->compilationTime = 0;
   assembler->pc              = 0;
+  assembler->videoMode       = 0;
 }
 
 void destroyAssembler(Assembler *assembler)
@@ -31,6 +32,7 @@ void destroyAssembler(Assembler *assembler)
   assembler->lastLabel       = 0;
   assembler->compilationTime = 0;
   assembler->pc              = 0;
+  assembler->videoMode       = 0;
 }
 
 int allocateAssemblerCode(Assembler *assembler, size_t startCapacity)

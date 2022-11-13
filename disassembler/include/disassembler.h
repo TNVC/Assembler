@@ -14,6 +14,7 @@ struct Disassembler {
   cmd_t *code;         /// <- Array with executable code
   size_t codeCapacity; /// <- Size of code array
   size_t pc;           /// <- Programm counter
+  int videoMode;       /// <- VideoMode type
 };
 
 /// Init disassembler to use

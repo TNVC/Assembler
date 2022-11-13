@@ -4,14 +4,6 @@
 #include "disassembler.h"
 #include "filesutils.h"
 
-#define END                                     \
-  do                                            \
-    {                                           \
-      destroyDisassembler(&disassembler);       \
-                                                \
-      return 0;                                 \
-    } while (0)
-
 int main(const int argc, const char * const argv[])
 {
   if (parseConsoleArgs(argc, argv))
@@ -22,16 +14,28 @@ int main(const int argc, const char * const argv[])
   initDisassembler(&disassembler);
 
   if (getFileCode(&disassembler))
-    END;
+    {
+      destroyDisassembler(&disassembler);
+
+      return 0;
+    }
+
 
   FILE *targetFile = nullptr;
 
   if (openTargetFile(&targetFile))
-    END;
+    {
+      destroyDisassembler(&disassembler);
+
+      return 0;
+    }
+
 
   disassemble(&disassembler, targetFile);
 
   fclose(targetFile);
 
-  END;
+  destroyDisassembler(&disassembler);
+
+  return 0;
 }

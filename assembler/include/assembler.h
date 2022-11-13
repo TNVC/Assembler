@@ -16,6 +16,7 @@ enum AssemblerError {
   ASSEMBLER_INCORRECT_ARGUMENTS = 0x01 << 2, /// <- Invalid argument syntax
   ASSEMBLER_OUT_OF_MEMORY       = 0x01 << 3, /// <- Heap is crowded
   ASSEMBLER_INCORRECT_LABEL     = 0x01 << 4, /// <- Label wasn`t declarate,  declarate twice or has unallowed chars
+  ASSEMBLER_INCORRECT_ATTRIBUTE = 0x01 << 5, /// <- Invalid attribute syntax
 };
 
 /// Struct with info about label
@@ -32,6 +33,7 @@ struct Assembler {
   size_t lastLabel;          /// <- Index of first free cell in labels
   size_t compilationTime;    /// <- Count of using in call compile()
   size_t pc;                 /// <- Programm counter
+  int    videoMode;          /// <- VideoModecfor programm
 };
 
 /// Init assembler to use
@@ -74,7 +76,8 @@ int compile(Assembler *assembler, String *strings, size_t stringsCount, FILE *li
 /// Write code from assembler to targetFile
 /// @param [in] assembler Assembler object with code cell
 /// @param [in] tagertFile File for write
+/// @return Error`s code
 /// @note targetFile have to open in bin mode
-void writeCode(const Assembler *assembler, FILE *targetFile);
+int writeCode(const Assembler *assembler, FILE *targetFile);
 
 #endif

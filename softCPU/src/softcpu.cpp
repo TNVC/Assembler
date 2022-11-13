@@ -20,6 +20,7 @@ int initSoftCPU(SoftCPU *cpu)
   cpu->codeCapacity = 0;
   cpu->stack        = {};
   cpu->pc           = 0;
+  cpu->videoMode    = 0;
   cpu->RAM          = (data_t *)calloc(RAM_SIZE, sizeof(data_t));
 
   if (!cpu->RAM)
@@ -41,6 +42,7 @@ void destroySoftCPU(SoftCPU *cpu)
   cpu->codeCapacity = 0;
   cpu->stack        = {};
   cpu->pc           = 0;
+  cpu->videoMode    = 0;
 }
 
 int allocateSoftCPUCode(SoftCPU *cpu)

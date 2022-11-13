@@ -40,7 +40,7 @@ DEF_CMD(MUL, 4, 0, 0, {
     else
       PUSH(POP * POP);
   })
-
+///ARITHMETIC_COMMAND(/)
 DEF_CMD(DIV, 5, 0, 0, {
     CHECK_STACK_FOR_BINARY;
 

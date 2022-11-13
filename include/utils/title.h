@@ -3,13 +3,14 @@
 
 #include <stdio.h>
 
-const char SOFTCPU_CMD_VERSION = 1;
+const char SOFTCPU_CMD_VERSION = 2;
 
 const char SECURITY_CODE[] = "DB";
 
 struct Title {
   char securityCode[3];
   char version;
+  char videoMode;
   int cmdCount;
 };
 
@@ -21,12 +22,14 @@ enum TitleError {
 
 /// Generete execute file title
 /// @param [in] capacity Size of executable code
+/// @param [in] videoMode VideoMode for programm
 /// @return Title object
-Title generateTitle(int capacity);
+Title generateTitle(int capacity, int videoMode);
 
 /// Check the title in file
 /// @param [in] filePtr Executable file with title
+/// @param [out] videoMode VideoMode for programm
 /// @return Size of code from title or error`s code
-int checkTitle(FILE *filePtr);
+int checkTitle(FILE *filePtr, int *videoMode);
 
 #endif

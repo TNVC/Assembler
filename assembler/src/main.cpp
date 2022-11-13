@@ -4,7 +4,6 @@
 #include "assembler.h"
 #include "settings.h"
 
-
 int main(const int argc, const char * const argv[])
 {
   if (parseConsoleArgs(argc, argv))
@@ -42,9 +41,10 @@ int main(const int argc, const char * const argv[])
 
   initAssembler(&assembler);
 
-  if (!compile(&assembler, strings.sequence, strings.stringsCount))
-    if (!compile(&assembler, strings.sequence, strings.stringsCount, listingFile))
-      writeCode(&assembler, targetFile);
+  int ok = 1;
+  if (ok) ok = !compile(&assembler, strings.sequence, strings.stringsCount);
+  if (ok) ok = !compile(&assembler, strings.sequence, strings.stringsCount, listingFile);
+  if (ok) ok = !writeCode(&assembler, targetFile);
 
   fclose(targetFile);
 

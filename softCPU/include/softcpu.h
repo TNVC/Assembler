@@ -24,6 +24,7 @@ struct SoftCPU {
   data_t  registers[REGISTERS_COUNT];     /// <- SoftCPU registers
   data_t *RAM;                            /// <- SoftCPU RAM
   size_t  pc;                             /// <- Program counter
+  int     videoMode;                      /// <- VideoMode for programm
 };
 
 /// Errors witch may be return from execute()

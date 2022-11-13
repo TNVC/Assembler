@@ -2,10 +2,11 @@
 #include <stdio.h>
 #include "title.h"
 #include "errorhandler.h"
+#include "attributes.h"
 #include "fiofunctions.h"
 #include "asserts.h"
 
-Title generateTitle(int capacity)
+Title generateTitle(int capacity, int videoMode)
 {
   assert(capacity > 0);
 
@@ -19,12 +20,15 @@ Title generateTitle(int capacity)
 
   title.cmdCount = capacity;
 
+  title.videoMode = (char)videoMode;
+
   return title;
 }
 
-int checkTitle(FILE *filePtr)
+int checkTitle(FILE *filePtr, int *videoMode)
 {
   assert(filePtr);
+  assert(videoMode);
 
   Title title = {};
 
@@ -40,6 +44,15 @@ int checkTitle(FILE *filePtr)
 
       return DIFFERENT_VERSION;
     }
+
+  if (title.videoMode < 0 || title.videoMode >= ATTRIBUTE_COUNT)
+    {
+      handleError("Incorrect VideoMode[%d]", title.videoMode);
+
+      return INCORRECT_TITLE;
+    }
+
+  *videoMode = title.videoMode;
 
   return title.cmdCount;
 }

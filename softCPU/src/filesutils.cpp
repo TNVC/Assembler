@@ -26,7 +26,7 @@ int getFileCode(SoftCPU *cpu)
       return ERROR;
     }
 
-  cpu->codeCapacity = (size_t)checkTitle(sourceFile);
+  cpu->codeCapacity = (size_t)checkTitle(sourceFile, &cpu->videoMode);
 
   switch (cpu->codeCapacity)
     {

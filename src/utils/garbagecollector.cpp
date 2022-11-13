@@ -2,7 +2,7 @@
 #include "garbagecollector.h"
 
 /// Activate GB
-/// @return Index to last push element in SequenceForFree 
+/// @return Index to last push element in SequenceForFree
 static int initCollector();
 
 /// Free() all elements in SequenceForFree

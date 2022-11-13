@@ -153,7 +153,7 @@
                                                         \
       PUSH##__VA_ARGS__(value);                         \
     } while (0)
-
+//#define NO_ARGS //for ...
 #define DEF_MATH(name, num, notNeg, funct)      \
   DEF_CMD(name, num, 0, 0, {                    \
       CHECK_STACK_FOR_UNARY;                    \

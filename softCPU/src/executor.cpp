@@ -5,6 +5,7 @@
 #include "softcpu.h"
 #include "fiofunctions.h"
 #include "systemlike.h"
+#include "video.h"
 #include "stack.h"
 #include "logging.h"
 #include "errorhandler.h"
@@ -32,6 +33,14 @@
       handleError("Incorrect RAM address [%d]!!", memIndex);  \
                                                               \
       return nullptr;                                         \
+    } while (0)
+
+#define FAIL_VIDEO                              \
+  do                                            \
+    {                                           \
+      handleError("Fail to init videoMode!!");  \
+                                                \
+      return SOFTCPU_VIDEO_ERROR;               \
     } while (0)
 
 /// Sleep delay
@@ -87,6 +96,9 @@ int execute(SoftCPU *cpu)
 {
   assert(cpu);
 
+  if (initVideoScreen(static_cast<VideoMode>(cpu->videoMode)))
+    FAIL_VIDEO;
+
   for (cpu->pc = 0; cpu->pc < cpu->codeCapacity; ++cpu->pc)
     {
       Command cmd = *((Command *)cpu->code + cpu->pc);
@@ -124,6 +136,8 @@ int execute(SoftCPU *cpu)
   dumpCPU(cpu, getLogFile());
 #endif
 
+  destroyVideoScreen();
+
   return 0;
 }
 
@@ -143,7 +157,7 @@ static void dumpCPU(SoftCPU *cpu, FILE *file)
   getchar();
 }
 
-static data_t *parseArg(SoftCPU *cpu)
+static data_t *parseArg(SoftCPU *cpu)//evalute not parse
 {
   assert(cpu);
 
@@ -236,35 +250,40 @@ static data_t *getRAMCell(SoftCPU *cpu, int index)
   return &cpu->RAM[index];
 }
 
-struct RGBA  {
-  int alpha : 8;
-  int blue  : 8;
-  int green : 8;
-  int red   : 8;
-};
-
 static void showMemory(SoftCPU *cpu)
 {
+  struct RGBA  {
+    int alpha : 8;
+    int blue  : 8;
+    int green : 8;
+    int red   : 8;
+  };
+
   assert(cpu);
 
   for (int x = 0; x < RAM_SIZE; ++x)
     {
       RGBA cell = *(RGBA *)getRAMCell(cpu, x);
 
-      if (cell.alpha == '\0')
+      Color color = getColor(
+                             (unsigned char)cell.red,
+                             (unsigned char)cell.green,
+                             (unsigned char)cell.blue,
+                             (unsigned char)cell.alpha
+                             );
 
-        return;
+      if (cpu->videoMode == (int)VideoMode::Console && cell.alpha == '\0')
+        break;
       else if (cell.alpha == -1)
-        printf("\033c");
+        clearScreen();
       else
-        printf(
-               "\033[38;2;%d;%d;%d;m%c\033[0m",
-               255 - cell.red,
-               255 - cell.green,
-               255 - cell.blue,
-               cell.alpha
-               );
+        setPixelColor(
+                      getCoord(unsigned(x % SCREEN_WIDTH), unsigned(x / SCREEN_WIDTH)),
+                      color
+                      );
     }
+
+  showScreen();
 
   sleep(CLOCKS_PER_SEC / 24);
 }
