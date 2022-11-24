@@ -9,7 +9,3 @@
 *.bin
 compileLog/
 .log/
-a
-assembler
-disassembler
-softcpu
